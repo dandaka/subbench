@@ -81,6 +81,21 @@ For an automated usage indicator, replace both explicit usage values with
 after the task. In an interactive terminal, `--post-usage` may be omitted and SubBench
 will prompt after the run.
 
+For the OpenAI Plus/DeepSWE study, regenerate the balanced eight-task selection and run
+the next unmeasured task with:
+
+```bash
+bun run select:tasks
+bun run subbench codex-usage --window weekly --format json
+bun run calibrate:openai
+```
+
+The calibration runner uses the authenticated Codex CLI through Pier's isolated Docker
+environment, reads the rolling weekly percentage through Codex's app-server protocol,
+grades with DeepSWE's verifier, and records the result in `openai-plus.db`. Runs are
+sequential, and the runner refuses to start at 70% or more five-hour usage so that the
+short window does not bind during a measured task.
+
 ## Monorepo
 
 - `packages/core` — SQLite schema, ingestion, validation, statistics, analysis, reports

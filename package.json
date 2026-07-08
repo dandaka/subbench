@@ -8,6 +8,8 @@
   ],
   "scripts": {
     "subbench": "bun run packages/cli/src/index.ts",
+    "select:tasks": "bun run scripts/select-deepswe-tasks.ts",
+    "calibrate:openai": "bun run scripts/run-deepswe-calibration.ts",
     "test": "bun test",
     "typecheck": "tsc --build",
     "check": "bun run typecheck && bun test"

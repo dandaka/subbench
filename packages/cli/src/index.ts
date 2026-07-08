@@ -13,6 +13,7 @@ import {
   renderMarkdown,
   validateDatabase,
 } from "@subbench/core";
+import { readCodexUsage } from "./codex-usage.ts";
 
 function fail(message: string, code = 2): never {
   console.error(message);
@@ -57,7 +58,7 @@ async function readUsage(command: string): Promise<number> {
 
 function usage(): never {
   fail(
-    "usage: subbench [--db path] <init|load|validate|analyze|run> [options]",
+    "usage: subbench [--db path] <init|load|validate|analyze|run|codex-usage> [options]",
   );
 }
 
@@ -67,6 +68,19 @@ async function main(): Promise<void> {
   const command = args.shift();
   if (!command) usage();
 
+  if (command === "codex-usage") {
+    const window = option(args, "--window") ?? "weekly";
+    const format = option(args, "--format") ?? "numeric";
+    if (!["session", "weekly"].includes(window)) fail("--window must be session or weekly");
+    if (!["numeric", "json"].includes(format)) fail("--format must be numeric or json");
+    if (args.length > 0) fail(`unknown options: ${args.join(" ")}`);
+    const usage = await readCodexUsage();
+    const selected = window === "session" ? usage.session : usage.weekly;
+    if (!selected) fail(`Codex did not report a ${window} usage window`);
+    if (format === "numeric") console.log(selected.usedPercent);
+    else console.log(JSON.stringify({ plan: usage.plan, window, ...selected }, null, 2));
+    return;
+  }
   if (command === "init") {
     initializeDatabase(databasePath);
     console.log(`initialized ${databasePath}`);
