@@ -1,0 +1,12 @@
+{
+  "name": "@subbench/cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "subbench": "./src/index.ts"
+  },
+  "dependencies": {
+    "@subbench/core": "workspace:*"
+  }
+}

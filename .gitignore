@@ -1,7 +1,10 @@
 .DS_Store
+.venv/
 node_modules/
 dist/
 build/
+*.tsbuildinfo
+*.db
 .env
 .env.*
 !.env.example

@@ -42,15 +42,67 @@ Those claims may be true for a given workflow, but they are usually not backed b
 
 ## Project Status
 
-Early proof of concept.
+V1 is implemented as a Bun workspace monorepo using TypeScript 7. It imports published task economics,
+captures subscription calibration runs, validates the measurement protocol, calculates
+confidence-aware value metrics, and exports publication-ready reports.
 
-V1 should not try to invent a new coding benchmark. It should reuse existing benchmark economics where possible and focus on the missing layer: subscription capacity and yield.
+## Quick Start
+
+Requires Bun 1.3.14.
+
+```bash
+bun install
+
+bun run subbench --db demo.db init
+bun run subbench --db demo.db load examples/synthetic.json
+bun run subbench --db demo.db validate
+bun run subbench --db demo.db analyze --format markdown
+```
+
+The example is explicitly synthetic; it tests the pipeline and is not a claim about any
+provider. Real studies should copy its bundle structure and follow the
+[measurement protocol](docs/protocol.md).
+
+Capture a calibration task after creating and loading its measurement metadata:
+
+```bash
+bun run subbench --db study.db run \
+  --measurement-id 1 --benchmark-source-id 1 \
+  --task-id task-001 --environment clean-image-sha256 \
+  --pre-usage 12 --post-usage 18 --api-cost 1.42 \
+  -- your-test-command
+```
+
+A zero command exit status counts as success. Use the run flags to preserve retries,
+limit events, promotions, peak hours, and drain-cap aborts.
+
+For an automated usage indicator, replace both explicit usage values with
+`--usage-command 'provider-usage --numeric'`; SubBench invokes it immediately before and
+after the task. In an interactive terminal, `--post-usage` may be omitted and SubBench
+will prompt after the run.
+
+## Monorepo
+
+- `packages/core` — SQLite schema, ingestion, validation, statistics, analysis, reports
+- `packages/cli` — `subbench` command and calibration process runner
+
+Run `bun run check` to type-check every workspace with TypeScript 7 and execute all tests.
+
+## V1 Outputs
+
+- normalized SQLite source data and computed results
+- median and p90 quota drain plus bootstrap confidence intervals
+- successful tasks per billing period and Subscription Value Index
+- API cost per success, value multiple, and break-even utilization
+- measurement grade, sample size, success rate, timing, and limit interruption rate
+- JSON, CSV, and Markdown reports with the harness-mismatch and staleness caveats
 
 ## Docs
 
 - [Goal](docs/goal.md)
 - [Relevant Research](docs/research.md)
 - [Methodology](docs/methodology.md)
+- [Measurement Protocol](docs/protocol.md)
 
 ## Initial Scope
 
@@ -79,4 +131,4 @@ Target workload:
 
 ## License
 
-TBD.
+MIT.
