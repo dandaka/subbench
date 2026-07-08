@@ -56,9 +56,10 @@ V1 should not try to invent a new coding benchmark. It should reuse existing ben
 
 Target providers:
 
-- Claude
-- OpenAI
-- Z.ai
+- Anthropic (Claude)
+- OpenAI (Codex)
+- Z.AI
+- OpenCode Go
 
 Target workload:
 
