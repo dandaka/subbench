@@ -65,6 +65,24 @@ CREATE TABLE IF NOT EXISTS runs (
   promotion INTEGER NOT NULL DEFAULT 0 CHECK(promotion IN (0,1)),
   notes TEXT, CHECK(ended_at >= started_at)
 );
+CREATE TABLE IF NOT EXISTS usage_snapshots (
+  id INTEGER PRIMARY KEY,
+  run_id INTEGER NOT NULL REFERENCES runs(id) ON DELETE CASCADE,
+  position TEXT NOT NULL CHECK(position IN ('pre','post')),
+  provider TEXT NOT NULL, account_id_hash TEXT, plan TEXT,
+  captured_at TEXT NOT NULL, collector_name TEXT NOT NULL,
+  collector_version TEXT NOT NULL, authority TEXT NOT NULL,
+  precision TEXT NOT NULL, cached INTEGER NOT NULL CHECK(cached IN (0,1)),
+  endpoint TEXT NOT NULL, raw_json TEXT NOT NULL, normalized_json TEXT NOT NULL,
+  UNIQUE(run_id, position)
+);
+CREATE TABLE IF NOT EXISTS usage_snapshot_windows (
+  id INTEGER PRIMARY KEY,
+  snapshot_id INTEGER NOT NULL REFERENCES usage_snapshots(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL, used_percent REAL NOT NULL
+    CHECK(used_percent >= 0 AND used_percent <= 100),
+  resets_at TEXT, duration_minutes REAL, provider_type TEXT, provider_unit INTEGER
+);
 CREATE TABLE IF NOT EXISTS results (
   id INTEGER PRIMARY KEY,
   measurement_id INTEGER NOT NULL REFERENCES subscription_measurements(id),
@@ -82,5 +100,6 @@ CREATE TABLE IF NOT EXISTS results (
   UNIQUE(measurement_id, task_cost_id)
 );
 CREATE INDEX IF NOT EXISTS runs_measurement_idx ON runs(measurement_id);
+CREATE INDEX IF NOT EXISTS usage_snapshots_run_idx ON usage_snapshots(run_id);
 CREATE INDEX IF NOT EXISTS task_costs_model_idx ON task_costs(provider_id, model);
 `;

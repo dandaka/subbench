@@ -3,6 +3,7 @@ export {
   analyzeDatabase,
   initializeDatabase,
   insertRun,
+  insertUsageSnapshots,
   loadBundle,
   openDatabase,
   validateDatabase,

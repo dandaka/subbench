@@ -95,6 +95,83 @@ export function insertRun(db: Database, row: JsonRow): number {
   return Number(db.query<{ id: number }, []>("SELECT last_insert_rowid() id").get()!.id);
 }
 
+interface PersistedUsageSnapshot {
+  provider: string;
+  account: { plan: string | null; idHash: string | null };
+  capturedAt: string;
+  collector: {
+    name: string; version: string; authority: string; precision: string; cached: boolean;
+  };
+  source: { endpoint: string };
+  windows: Array<{
+    kind: string; usedPercent: number; resetsAt: string | null;
+    durationMinutes?: number | null; providerType?: string; providerUnit?: number | null;
+  }>;
+  raw: unknown;
+}
+
+function redact(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(redact);
+  if (!value || typeof value !== "object") return value;
+  return Object.fromEntries(Object.entries(value).map(([key, item]) => [
+    key,
+    /token|secret|authorization|credential|api.?key/i.test(key) ? "[REDACTED]" : redact(item),
+  ]));
+}
+
+export function insertUsageSnapshots(
+  db: Database,
+  runId: number,
+  pre: PersistedUsageSnapshot,
+  post: PersistedUsageSnapshot,
+  windowKind: string,
+): void {
+  if (pre.provider !== post.provider) throw new Error("usage snapshots use different providers");
+  if (pre.account.idHash && post.account.idHash && pre.account.idHash !== post.account.idHash) {
+    throw new Error("usage snapshots use different accounts");
+  }
+  const preWindow = pre.windows.find((window) => window.kind === windowKind);
+  const postWindow = post.windows.find((window) => window.kind === windowKind);
+  if (!preWindow || !postWindow) throw new Error(`usage snapshots lack ${windowKind} window`);
+  if (preWindow.resetsAt !== postWindow.resetsAt) {
+    throw new Error(`usage snapshots cross a ${windowKind} reset`);
+  }
+  const transaction = db.transaction(() => {
+    for (const [position, snapshot] of [["pre", pre], ["post", post]] as const) {
+      db.run(
+        `INSERT INTO usage_snapshots(
+          run_id,position,provider,account_id_hash,plan,captured_at,collector_name,
+          collector_version,authority,precision,cached,endpoint,raw_json,normalized_json
+        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        [
+          runId, position, snapshot.provider, snapshot.account.idHash, snapshot.account.plan,
+          snapshot.capturedAt, snapshot.collector.name, snapshot.collector.version,
+          snapshot.collector.authority, snapshot.collector.precision,
+          snapshot.collector.cached ? 1 : 0, snapshot.source.endpoint,
+          JSON.stringify(redact(snapshot.raw)),
+          JSON.stringify({ ...snapshot, raw: redact(snapshot.raw) }),
+        ],
+      );
+      const snapshotId = Number(
+        db.query<{ id: number }, []>("SELECT last_insert_rowid() id").get()!.id,
+      );
+      for (const window of snapshot.windows) {
+        db.run(
+          `INSERT INTO usage_snapshot_windows(
+            snapshot_id,kind,used_percent,resets_at,duration_minutes,provider_type,provider_unit
+          ) VALUES(?,?,?,?,?,?,?)`,
+          [
+            snapshotId, window.kind, window.usedPercent, window.resetsAt,
+            window.durationMinutes ?? null, window.providerType ?? null,
+            window.providerUnit ?? null,
+          ],
+        );
+      }
+    }
+  });
+  transaction();
+}
+
 export function loadBundle(db: Database, path: string): Record<string, number> {
   const payload = JSON.parse(readFileSync(path, "utf8")) as Bundle;
   const transaction = db.transaction(() => {

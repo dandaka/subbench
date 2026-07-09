@@ -6,6 +6,7 @@ import {
   analyzeDatabase,
   initializeDatabase,
   insertRun,
+  insertUsageSnapshots,
   loadBundle,
   openDatabase,
   renderCsv,
@@ -13,7 +14,9 @@ import {
   renderMarkdown,
   validateDatabase,
 } from "@subbench/core";
-import { readCodexUsage } from "./codex-usage.ts";
+import { readCodexUsage, readCodexUsageSnapshot } from "./codex-usage.ts";
+import { renderUsage, selectWindow, type UsageProvider, type UsageSnapshot, type UsageWindowKind } from "./usage.ts";
+import { readZaiUsageSnapshot } from "./zai-usage.ts";
 
 function fail(message: string, code = 2): never {
   console.error(message);
@@ -56,9 +59,13 @@ async function readUsage(command: string): Promise<number> {
   return numeric(output.trim(), "usage command output");
 }
 
+function collectUsage(provider: UsageProvider): Promise<UsageSnapshot> {
+  return provider === "codex" ? readCodexUsageSnapshot() : readZaiUsageSnapshot();
+}
+
 function usage(): never {
   fail(
-    "usage: subbench [--db path] <init|load|validate|analyze|run|codex-usage> [options]",
+    "usage: subbench [--db path] <init|load|validate|analyze|run|usage|codex-usage> [options]",
   );
 }
 
@@ -68,6 +75,22 @@ async function main(): Promise<void> {
   const command = args.shift();
   if (!command) usage();
 
+  if (command === "usage") {
+    const provider = args.shift() as UsageProvider | undefined;
+    if (!provider || !["codex", "zai"].includes(provider)) fail("usage provider must be codex or zai");
+    const window = (option(args, "--window") ?? "weekly") as UsageWindowKind;
+    const format = option(args, "--format") ?? "numeric";
+    if (!["session", "weekly", "monthly", "mcp", "unknown"].includes(window)) {
+      fail("--window must be session, weekly, monthly, mcp, or unknown");
+    }
+    if (!["numeric", "json"].includes(format)) fail("--format must be numeric or json");
+    if (args.length > 0) fail(`unknown options: ${args.join(" ")}`);
+    const snapshot = provider === "codex"
+      ? await readCodexUsageSnapshot()
+      : await readZaiUsageSnapshot();
+    console.log(renderUsage(snapshot, window, format as "numeric" | "json"));
+    return;
+  }
   if (command === "codex-usage") {
     const window = option(args, "--window") ?? "weekly";
     const format = option(args, "--format") ?? "numeric";
@@ -133,13 +156,22 @@ async function main(): Promise<void> {
       const environment = option(args, "--environment", true)!;
       const apiCost = numeric(option(args, "--api-cost", true), "--api-cost");
       const usageCommand = option(args, "--usage-command");
+      const usageProvider = option(args, "--usage-provider") as UsageProvider | undefined;
+      const usageWindow = (option(args, "--usage-window") ?? "weekly") as UsageWindowKind;
       const explicitPre = option(args, "--pre-usage");
       const explicitPost = option(args, "--post-usage");
+      if (usageProvider && !["codex", "zai"].includes(usageProvider)) {
+        fail("--usage-provider must be codex or zai");
+      }
+      if (usageProvider && usageCommand) fail("--usage-provider cannot be combined with --usage-command");
+      if (usageProvider && (explicitPre !== undefined || explicitPost !== undefined)) {
+        fail("--usage-provider cannot be combined with explicit usage values");
+      }
       if (usageCommand && (explicitPre !== undefined || explicitPost !== undefined)) {
         fail("--usage-command cannot be combined with explicit usage values");
       }
-      if (!usageCommand && explicitPre === undefined) {
-        fail("--pre-usage or --usage-command is required");
+      if (!usageProvider && !usageCommand && explicitPre === undefined) {
+        fail("--pre-usage, --usage-command, or --usage-provider is required");
       }
       const retries = numeric(option(args, "--retries") ?? "0", "--retries");
       const limitEvent = flag(args, "--limit-event");
@@ -149,15 +181,19 @@ async function main(): Promise<void> {
       const notes = option(args, "--notes") ?? "";
       if (args.length > 0) fail(`unknown options: ${args.join(" ")}`);
 
-      const preUsage = usageCommand
-        ? await readUsage(usageCommand)
-        : numeric(explicitPre, "--pre-usage");
+      const preSnapshot = usageProvider ? await collectUsage(usageProvider) : undefined;
+      const preUsage = preSnapshot
+        ? selectWindow(preSnapshot, usageWindow).usedPercent
+        : usageCommand ? await readUsage(usageCommand) : numeric(explicitPre, "--pre-usage");
       const startedAt = new Date();
       const task = Bun.spawn(taskCommand, { stdin: "inherit", stdout: "inherit", stderr: "inherit" });
       const exitCode = await task.exited;
       const endedAt = new Date();
       let postUsage: number;
-      if (usageCommand) {
+      const postSnapshot = usageProvider ? await collectUsage(usageProvider) : undefined;
+      if (postSnapshot) {
+        postUsage = selectWindow(postSnapshot, usageWindow).usedPercent;
+      } else if (usageCommand) {
         postUsage = await readUsage(usageCommand);
       } else if (explicitPost !== undefined) {
         postUsage = numeric(explicitPost, "--post-usage");
@@ -186,6 +222,14 @@ async function main(): Promise<void> {
         promotion: promotion ? 1 : 0,
         notes,
       });
+      if (preSnapshot && postSnapshot) {
+        try {
+          insertUsageSnapshots(db, runId, preSnapshot, postSnapshot, usageWindow);
+        } catch (error) {
+          db.run("DELETE FROM runs WHERE id=?", [runId]);
+          throw error;
+        }
+      }
       console.log(`recorded run ${runId} (exit ${exitCode})`);
       process.exitCode = exitCode;
       return;
