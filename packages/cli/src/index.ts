@@ -17,6 +17,7 @@ import {
 import { readCodexUsage, readCodexUsageSnapshot } from "./codex-usage.ts";
 import { renderUsage, selectWindow, type UsageProvider, type UsageSnapshot, type UsageWindowKind } from "./usage.ts";
 import { readZaiUsageSnapshot } from "./zai-usage.ts";
+import { readClaudeUsageSnapshot } from "./claude-usage.ts";
 
 function fail(message: string, code = 2): never {
   console.error(message);
@@ -60,7 +61,9 @@ async function readUsage(command: string): Promise<number> {
 }
 
 function collectUsage(provider: UsageProvider): Promise<UsageSnapshot> {
-  return provider === "codex" ? readCodexUsageSnapshot() : readZaiUsageSnapshot();
+  if (provider === "codex") return readCodexUsageSnapshot();
+  if (provider === "claude") return readClaudeUsageSnapshot();
+  return readZaiUsageSnapshot();
 }
 
 function usage(): never {
@@ -77,7 +80,9 @@ async function main(): Promise<void> {
 
   if (command === "usage") {
     const provider = args.shift() as UsageProvider | undefined;
-    if (!provider || !["codex", "zai"].includes(provider)) fail("usage provider must be codex or zai");
+    if (!provider || !["codex", "zai", "claude"].includes(provider)) {
+      fail("usage provider must be codex, zai, or claude");
+    }
     const window = (option(args, "--window") ?? "weekly") as UsageWindowKind;
     const format = option(args, "--format") ?? "numeric";
     if (!["session", "weekly", "monthly", "mcp", "unknown"].includes(window)) {
@@ -85,9 +90,7 @@ async function main(): Promise<void> {
     }
     if (!["numeric", "json"].includes(format)) fail("--format must be numeric or json");
     if (args.length > 0) fail(`unknown options: ${args.join(" ")}`);
-    const snapshot = provider === "codex"
-      ? await readCodexUsageSnapshot()
-      : await readZaiUsageSnapshot();
+    const snapshot = await collectUsage(provider);
     console.log(renderUsage(snapshot, window, format as "numeric" | "json"));
     return;
   }

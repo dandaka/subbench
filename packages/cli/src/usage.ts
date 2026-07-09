@@ -1,4 +1,4 @@
-export type UsageProvider = "codex" | "zai";
+export type UsageProvider = "codex" | "zai" | "claude";
 export type UsageAuthority = "server" | "official-client" | "display" | "local-reconstruction";
 export type UsagePrecision = "exact" | "decimal" | "integer-percent" | "unknown";
 export type UsageWindowKind = "session" | "weekly" | "monthly" | "mcp" | "unknown";
