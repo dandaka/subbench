@@ -118,6 +118,7 @@ Run `bun run check` to type-check every workspace with TypeScript 7 and execute 
 - [Relevant Research](docs/research.md)
 - [Methodology](docs/methodology.md)
 - [Measurement Protocol](docs/protocol.md)
+- [OpenAI Plus Calibration Status](docs/openai-plus-calibration-status.md)
 
 ## Initial Scope
 
