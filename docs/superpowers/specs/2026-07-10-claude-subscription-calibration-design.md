@@ -163,6 +163,22 @@ overnight when the user is not working, driving Claude Code from a separate
 Codex agent so this benchmark is the only consumer of the Max subscription.
 Confirmation recorded before each run.
 
+## Build notes
+
+- The study bundle's `task_costs` row carries the DeepSWE four-model published
+  aggregate (pass 0.5232, $9.07 — the same figure the Z.ai bundle uses), model
+  id `claude-opus-4-8`. The schema requires `pass_at_1 > 0`, so a zero
+  placeholder is invalid.
+- `measurement_grade` must be one of `exact|rounded|inferred|unknown`. Graded
+  `rounded` (conservative) rather than `exact`: the collector returns decimal
+  utilization, but the endpoint's task-level drain granularity is not yet
+  independently validated. Upgrade only after a drain-precision experiment.
+- The runner injects the OAuth token via `CLAUDE_CODE_OAUTH_TOKEN` and clears
+  `ANTHROPIC_API_KEY`/`ANTHROPIC_AUTH_TOKEN`/`ANTHROPIC_BASE_URL` so the task
+  uses the subscription login, not a pay-per-token key or the Z.ai base URL.
+- The runner refuses a credential with no refresh token (an inference-only
+  `setup-token` cannot sustain a ~50-minute task).
+
 ## Attribution / licensing
 
 ClaudeBar is MIT (`github.com/tddworks/ClaudeBar`). The collector is a

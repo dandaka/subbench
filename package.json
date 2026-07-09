@@ -11,6 +11,8 @@
     "select:tasks": "bun run scripts/select-deepswe-tasks.ts",
     "calibrate:openai": "bun run scripts/run-deepswe-calibration.ts",
     "calibrate:zai": "bun run scripts/run-zai-deepswe-calibration.ts",
+    "calibrate:claude": "bun run scripts/run-claude-deepswe-calibration.ts",
+    "probe:claude": "bun run scripts/probe-claude-usage.ts",
     "test": "bun test",
     "typecheck": "tsc --build",
     "check": "bun run typecheck && bun test"
