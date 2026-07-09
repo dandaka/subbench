@@ -3,7 +3,7 @@
 import { existsSync, writeFileSync } from "node:fs";
 import { createInterface } from "node:readline/promises";
 import {
-  analyzeDatabase,
+  analyze,
   initializeDatabase,
   insertRun,
   insertUsageSnapshots,
@@ -131,14 +131,22 @@ async function main(): Promise<void> {
     if (command === "analyze") {
       const format = option(args, "--format") ?? "markdown";
       const output = option(args, "--output");
-      const records = analyzeDatabase(db);
+      const force = flag(args, "--force");
+      if (args.length > 0) fail(`unknown options: ${args.join(" ")}`);
       const renderers = {
         json: renderJson,
         csv: renderCsv,
         markdown: renderMarkdown,
       } as const;
       if (!(format in renderers)) fail("--format must be json, csv, or markdown");
-      const content = renderers[format as keyof typeof renderers](records);
+      let report;
+      try {
+        report = analyze(db, force);
+      } catch (error) {
+        fail(error instanceof Error ? error.message : String(error), 1);
+      }
+      for (const caveat of report.caveats) console.error(`caveat: ${caveat}`);
+      const content = renderers[format as keyof typeof renderers](report.records);
       if (output) writeFileSync(output, content);
       else process.stdout.write(content);
       return;
@@ -223,6 +231,9 @@ async function main(): Promise<void> {
         aborted: aborted ? 1 : 0,
         peak_hours: peakHours ? 1 : 0,
         promotion: promotion ? 1 : 0,
+        // Manual numeric input is non-publishable evidence; provider snapshots upgrade
+        // the run to 'paired-snapshots' via insertUsageSnapshots below.
+        evidence_kind: (preSnapshot && postSnapshot) ? "paired-snapshots" : "manual",
         notes,
       });
       if (preSnapshot && postSnapshot) {

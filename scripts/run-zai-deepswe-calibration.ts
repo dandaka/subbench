@@ -44,6 +44,32 @@ function option(name: string): string | undefined {
   return index < 0 ? undefined : process.argv[index + 1];
 }
 
+// D4: refuse to run without an operator isolation attestation (see protocol.md §2).
+function requireIsolationOperator(): string {
+  const operator = option("--confirm-isolation");
+  if (!operator || operator.startsWith("--")) {
+    throw new Error(
+      "refusing to run without --confirm-isolation \"<operator>\": confirm that nothing "
+      + "else is consuming the subscription, then re-run with your name.",
+    );
+  }
+  return operator;
+}
+
+function stampIsolation(databasePath: string, operator: string, environmentId: string): void {
+  const db = openDatabase(databasePath);
+  try {
+    db.run(
+      `UPDATE subscription_measurements
+       SET isolation_confirmed_at=?, isolation_confirmed_by=?, environment_id=?
+       WHERE id=1`,
+      [new Date().toISOString(), operator, environmentId],
+    );
+  } finally {
+    db.close();
+  }
+}
+
 async function run(command: string[], env?: Record<string, string>): Promise<number> {
   const child = Bun.spawn(command, {
     cwd: root,
@@ -120,7 +146,10 @@ function pierEnvironment(token: string): Record<string, string> {
   return env;
 }
 
+const isolationOperator = requireIsolationOperator();
 await prepare();
+const environmentId = `deepswe-v1.1-pier-0.3.0-docker-claude-code-${claudeVersion}`;
+stampIsolation(database, isolationOperator, environmentId);
 const token = process.env.ZAI_AUTH_TOKEN;
 if (!token) throw new Error("ZAI_AUTH_TOKEN is missing from .env");
 const task = nextTask();
@@ -178,7 +207,7 @@ try {
     measurement_id: 1,
     benchmark_source_id: 1,
     task_id: task.id,
-    harness_environment_id: `deepswe-v1.1-pier-0.3.0-docker-claude-code-${claudeVersion}`,
+    harness_environment_id: environmentId,
     started_at: startedAt.toISOString(),
     ended_at: endedAt.toISOString(),
     pre_usage: preWeekly.usedPercent,

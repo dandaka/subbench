@@ -43,6 +43,36 @@ export function bootstrapCi(
   return [percentile(estimates, alpha), percentile(estimates, 1 - alpha)];
 }
 
+// Joint bootstrap over calibration runs: resample run indices with replacement and
+// evaluate `statistic` on each resample, then return the confidence interval of the
+// resampled statistics. Unlike bootstrapCi (which resamples a single value list), this
+// preserves the pairing between a run's drain factor and its success indicator so the
+// two sources of uncertainty compound jointly.
+export function bootstrapJoint(
+  count: number,
+  statistic: (indices: number[]) => number,
+  confidence = 0.95,
+  samples = 5_000,
+  seed = 0,
+): [number, number] {
+  if (count === 0) throw new Error("at least one run is required");
+  if (count === 1) {
+    const value = statistic([0]);
+    return [value, value];
+  }
+  const rng = random(seed);
+  const estimates: number[] = [];
+  for (let sample = 0; sample < samples; sample += 1) {
+    const indices: number[] = [];
+    for (let index = 0; index < count; index += 1) {
+      indices.push(Math.floor(rng() * count));
+    }
+    estimates.push(statistic(indices));
+  }
+  const alpha = (1 - confidence) / 2;
+  return [percentile(estimates, alpha), percentile(estimates, 1 - alpha)];
+}
+
 // Acklam's rational approximation of the inverse normal CDF.
 function normalQuantile(probability: number): number {
   const a = [-39.69683028665376, 220.9460984245205, -275.9285104469687,

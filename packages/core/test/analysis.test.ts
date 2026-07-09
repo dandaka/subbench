@@ -14,35 +14,69 @@ function run(delta: number, success = 1, promotion = 0): CalibrationRun {
   };
 }
 
+const base = {
+  quotaCapacity: 100,
+  quotaWindowDays: 7,
+  planPrice: 20,
+  billingDays: 30,
+  averageCostUsd: 2,
+  publishedPassAt1: 0.6,
+};
+
 describe("v1 analysis", () => {
-  test("implements the documented formula", () => {
-    const result = calculate({
-      runs: [run(8), run(9), run(10, 0), run(9), run(8)],
-      quotaCapacity: 100,
-      planPrice: 20,
-      averageCostUsd: 2,
-      publishedPassAt1: 0.6,
-    });
+  test("implements the window-normalized native formula", () => {
+    const result = calculate({ ...base, runs: [run(8), run(9), run(10, 0), run(9), run(8)] });
+    // conversion factor = median(delta/api) = median([4,4.5,5,4.5,4]) = 4.5
     expect(result.conversionFactor).toBe(4.5);
-    expect(result.successfulTasksPerPeriod).toBeCloseTo(100 / 9 * 0.6);
-    expect(result.subscriptionValueIndex).toBeCloseTo(1 / 3);
-    expect(result.breakEvenTasks).toBeCloseTo(6);
+    // window price = 20 * 7 / 30
+    expect(result.windowPrice).toBeCloseTo(20 * 7 / 30);
+    // native success rate = 4/5
+    expect(result.nativeSuccessRate).toBeCloseTo(0.8);
+    // native tasks/window = 100 / (2*4.5) * 0.8 = 100/9 * 0.8
+    expect(result.nativeTasksPerWindow).toBeCloseTo(100 / 9 * 0.8);
+    // SVI = nativeTasksPerWindow / windowPrice
+    expect(result.subscriptionValueIndex).toBeCloseTo((100 / 9 * 0.8) / (20 * 7 / 30));
+    // secondary metric still uses published pass@1
+    expect(result.benchmarkEquivalentTasksPerWindow).toBeCloseTo(100 / 9 * 0.6);
+  });
+
+  test("all-failure runs yield a native SVI of 0", () => {
+    const result = calculate({
+      ...base,
+      runs: [run(8, 0), run(9, 0), run(10, 0), run(9, 0), run(8, 0)],
+    });
+    expect(result.successCount).toBe(0);
+    expect(result.nativeSuccessRate).toBe(0);
+    expect(result.nativeTasksPerWindow).toBe(0);
+    expect(result.subscriptionValueIndex).toBe(0);
+    // upper Wilson bound stays positive so the interval is honestly wide
+    expect(result.successCiHigh).toBeGreaterThan(0);
+    // benchmark-equivalent secondary is unaffected by native failures
+    expect(result.benchmarkEquivalentTasksPerWindow).toBeGreaterThan(0);
+  });
+
+  test("requires a named quota window", () => {
+    expect(() => calculate({ ...base, quotaWindowDays: 0, runs: [run(8)] }))
+      .toThrow("quotaWindowDays");
+  });
+
+  test("omits API comparison when no compatible published economics", () => {
+    const result = calculate({
+      ...base,
+      publishedPassAt1: null,
+      economicsGap: "no compatible published economics",
+      runs: [run(8), run(9), run(8)],
+    });
+    expect(result.benchmarkEquivalentTasksPerWindow).toBeNull();
+    expect(result.apiValueMultiple).toBeNull();
+    expect(result.breakEvenTasks).toBeNull();
+    expect(result.economicsGap).toBe("no compatible published economics");
+    // the native metric is still produced
+    expect(result.subscriptionValueIndex).toBeGreaterThan(0);
   });
 
   test("supports promotions only as separate cells", () => {
-    expect(calculate({
-      runs: [run(1, 1, 1)],
-      quotaCapacity: 100,
-      planPrice: 20,
-      averageCostUsd: 2,
-      publishedPassAt1: 0.5,
-    }).medianDrain).toBe(1);
-    expect(() => calculate({
-      runs: [run(8), run(1, 1, 1)],
-      quotaCapacity: 100,
-      planPrice: 20,
-      averageCostUsd: 2,
-      publishedPassAt1: 0.5,
-    })).toThrow("separately");
+    expect(calculate({ ...base, runs: [run(1, 1, 1)] }).medianDrain).toBe(1);
+    expect(() => calculate({ ...base, runs: [run(8), run(1, 1, 1)] })).toThrow("separately");
   });
 });

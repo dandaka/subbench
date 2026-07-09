@@ -16,6 +16,13 @@ import type { UsageSnapshot } from "../packages/cli/src/usage.ts";
 interface SelectedTask {
   id: string;
   avg_cost_usd: number;
+  model_costs?: Record<string, number>;
+}
+
+// The api-equivalent cost of a task must use the bound model's economics, not a
+// cross-model aggregate. Falls back to the aggregate only if the per-model cost is absent.
+function apiEquivalentUsd(task: SelectedTask, model: string): number {
+  return task.model_costs?.[model] ?? task.avg_cost_usd;
 }
 
 interface Selection {
@@ -49,6 +56,34 @@ const postReadBackoffMs = 150_000; // 2.5 minutes between attempts (~15 min tota
 function option(name: string): string | undefined {
   const index = process.argv.indexOf(name);
   return index < 0 ? undefined : process.argv[index + 1];
+}
+
+// D4: the operator must attest isolation before any measured task. The attestation is
+// recorded onto the measurement so the analysis pipeline can fail closed without it.
+function requireIsolationOperator(): string {
+  const operator = option("--confirm-isolation");
+  if (!operator || operator.startsWith("--")) {
+    throw new Error(
+      "refusing to run without --confirm-isolation \"<operator>\": confirm that nothing "
+      + "else is consuming the subscription (other sessions, agents, cron, MCP daemons, "
+      + "shared seats) per protocol.md §2, then re-run with your name.",
+    );
+  }
+  return operator;
+}
+
+function stampIsolation(databasePath: string, operator: string, environmentId: string): void {
+  const db = openDatabase(databasePath);
+  try {
+    db.run(
+      `UPDATE subscription_measurements
+       SET isolation_confirmed_at=?, isolation_confirmed_by=?, environment_id=?
+       WHERE id=1`,
+      [new Date().toISOString(), operator, environmentId],
+    );
+  } finally {
+    db.close();
+  }
 }
 
 function sleep(ms: number): Promise<void> {
@@ -153,7 +188,10 @@ function pierEnvironment(token: string): Record<string, string> {
   return env;
 }
 
+const isolationOperator = requireIsolationOperator();
 await prepare();
+const environmentId = `deepswe-v1.1-pier-0.3.0-docker-claude-code-${claudeVersion}`;
+stampIsolation(database, isolationOperator, environmentId);
 const credential = readClaudeCredential();
 if (!credential.refreshToken) {
   throw new Error(
@@ -223,12 +261,12 @@ try {
     measurement_id: 1,
     benchmark_source_id: 1,
     task_id: task.id,
-    harness_environment_id: `deepswe-v1.1-pier-0.3.0-docker-claude-code-${claudeVersion}`,
+    harness_environment_id: environmentId,
     started_at: startedAt.toISOString(),
     ended_at: endedAt.toISOString(),
     pre_usage: preWeekly.usedPercent,
     post_usage: postWeekly.usedPercent,
-    api_equivalent_usd: task.avg_cost_usd,
+    api_equivalent_usd: apiEquivalentUsd(task, "claude-opus-4-8"),
     success: success ? 1 : 0,
     retries: 0,
     limit_event: 0,
