@@ -26,6 +26,11 @@ Use 5–10 representative tasks per cell. Immediately before and after each task
 the product's weekly or monthly usage indicator. Pace work so short session limits do not
 bind. Record interruptions if they do.
 
+The account must be dedicated to measurement, or verified idle on every other product
+surface for the whole window — providers share quota across surfaces (Claude across
+Code/chat/Cowork), and concurrent usage silently inflates observed drain. Concurrent
+non-measurement usage invalidates the window.
+
 Run the task through `subbench run`; a zero exit status records success. The
 `api-equivalent-usd` input is the cost of the same task under the adopted benchmark
 economics. Failed attempts, retries, limit events, and aborts remain in the data.
@@ -40,9 +45,16 @@ floats are grade `exact`; displayed rounded percentages are `rounded`; depletion
 capacity is `inferred`; insufficient evidence is `unknown`. Record statistical confidence
 separately.
 
+For Claude cells, prefer grade `exact` by reading utilization floats from the
+`anthropic-ratelimit-unified-*` SSE headers; cross-check them against displayed
+percentages during the first runs of each cell before relying on them.
+
 ## 6. Validate and publish
 
-Run validation before analysis. Publish the JSON or CSV data, generated report,
+Run validation before analysis. Run the cross-source sanity check: compare the adopted
+benchmark's pass@1 and cost-per-task against independent sources (Aider, MorphLLM,
+Ivern AI) for the same models, and flag wild divergence in the report's caveats.
+Publish the JSON or CSV data, generated report,
 measurement grade, sample sizes, median and p90 drain, confidence intervals, conditions,
 and the harness-mismatch disclaimer. Results expire at the end of their stated window.
 

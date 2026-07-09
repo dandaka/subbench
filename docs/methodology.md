@@ -107,6 +107,17 @@ All runs use a clean, reproducible environment:
 
 Any deviation from the clean environment invalidates the run.
 
+## Account Isolation
+
+Environment isolation is not enough: providers share quota across product surfaces
+(Claude shares limits across Code, chat, and Cowork; ChatGPT shares agentic credits
+across surfaces). Any usage on another surface during a measurement window silently
+inflates observed drain.
+
+The measurement account must be dedicated to SubBench, or verified idle on all other
+surfaces for the entire measurement window. Any concurrent non-measurement usage on
+the account invalidates the window.
+
 ## Provider Measurement
 
 For each provider and plan:
@@ -128,8 +139,14 @@ These are two separate dimensions and must never be conflated.
 
 Measurement grade — quality of the quota data source:
 
-- Exact: precise quota deltas are available.
-- Rounded: only rounded usage percentages are available.
+- Exact: precise quota deltas are available. For Claude cells, exact utilization
+  floats can be recovered from the `anthropic-ratelimit-unified-*` SSE headers
+  (she-llac/claude-counter methodology). This technique rests on a single
+  unreplicated source: validate the header-derived values against displayed
+  percentages during the first runs of each Claude cell before relying on them.
+- Rounded: only rounded usage percentages are available. Note that rounding adds
+  quantization error on the order of ±1 point per run; with typical drains of
+  5-6 points this is ~±20% per run, mitigated by sample size.
 - Inferred: quota is inferred from depletion experiments.
 - Unknown: insufficient data.
 
@@ -245,8 +262,20 @@ Secondary candidate — FrontierCode 1.1 (cognition.com/blog/frontier-code-1.1):
 When pulling published numbers, use the effort level closest to each subscription
 product's default configuration.
 
+Rejected for V1 — SWE-Lancer: despite its attractive economic framing (real Upwork
+payouts), it publishes no per-model, per-task cost artifacts of the kind the V1
+economics import requires, is OpenAI-controlled, and is single-repo (Expensify).
+It remains a V2 candidate for a "developer value" framing. Do not re-litigate this
+choice without new evidence that per-trial cost data has been published.
+
 Other published cost data (Artificial Analysis, SWE-bench Pro, SWE Atlas) is used only
 to sanity-check that adopted costs are plausible.
+
+Cross-source sanity check (required at publish time): benchmark pass rates are
+gameable, and V1 trusts a single source. Before publishing, compare the adopted
+source's pass@1 and cost-per-task against independent sources (Aider leaderboard,
+MorphLLM, Ivern AI) for the same models, and flag any wild divergence in the
+report's caveats. This is a plausibility check, not re-measurement.
 
 ## Success Definition
 
