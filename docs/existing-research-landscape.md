@@ -163,7 +163,8 @@ Per-token prices dropped 67% but total costs exploded [29]. Input tokens dominat
 
 ### Reverse Engineering Techniques
 
-1. **SSE header extraction** — Intercept `anthropic-ratelimit-unified-*` headers, recover denominators via Stern-Brocot tree
+1. **SSE message-limit extraction** — Intercept Claude.ai `message_limit` objects and
+   recover denominators from their unrounded utilization values via Stern-Brocot tree
 2. **Proxy logging** — Go proxy between client and API, log headers and token counts
 3. **Credit burn rate measurement** — Calibrated requests of known token size, measure credit deduction
 4. **Message counting** — Count until throttling/model downgrade occurs

@@ -46,8 +46,10 @@ capacity is `inferred`; insufficient evidence is `unknown`. Record statistical c
 separately.
 
 For Claude cells, prefer grade `exact` by reading utilization floats from the
-`anthropic-ratelimit-unified-*` SSE headers; cross-check them against displayed
-percentages during the first runs of each cell before relying on them.
+`message_limit` objects in Claude.ai SSE response bodies; cross-check them against
+displayed percentages during the first runs of each cell before relying on them. This
+Claude.ai technique does not by itself provide pre/post snapshots for Claude Code runs;
+validate the selected collection path on the measured product surface.
 
 ## 6. Validate and publish
 
@@ -57,4 +59,3 @@ Ivern AI) for the same models, and flag wild divergence in the report's caveats.
 Publish the JSON or CSV data, generated report,
 measurement grade, sample sizes, median and p90 drain, confidence intervals, conditions,
 and the harness-mismatch disclaimer. Results expire at the end of their stated window.
-

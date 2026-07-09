@@ -140,9 +140,9 @@ These are two separate dimensions and must never be conflated.
 Measurement grade — quality of the quota data source:
 
 - Exact: precise quota deltas are available. For Claude cells, exact utilization
-  floats can be recovered from the `anthropic-ratelimit-unified-*` SSE headers
-  (she-llac/claude-counter methodology). This technique rests on a single
-  unreplicated source: validate the header-derived values against displayed
+  floats can be recovered from `message_limit` objects in Claude.ai SSE response
+  bodies (she-llac/claude-counter methodology). This technique rests on a single
+  unreplicated source: validate the SSE-derived values against displayed
   percentages during the first runs of each Claude cell before relying on them.
 - Rounded: only rounded usage percentages are available. Note that rounding adds
   quantization error on the order of ±1 point per run; with typical drains of

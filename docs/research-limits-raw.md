@@ -19,8 +19,12 @@ Last updated: 2026-07-09
 - June 15, 2026: Non-interactive usage (Agent SDK, `claude -p`, GitHub Actions) gets separate monthly credit: $20 Pro, $100 Max 5x, $200 Max 20x.
 
 **How limits are measured/discovered**:
-- HTTP headers `anthropic-ratelimit-unified-*` on every API response contain utilization (0.0-1.0), status (allowed/exceeded/rate_limited), across three windows: 5h, 7d, 7d_sonnet.
-- she-llac reverse-engineered exact denominators from unrounded SSE doubles (e.g., 0.16327272727272726) via Stern-Brocot tree.
+- Claude Code responses have been reported to expose `anthropic-ratelimit-unified-*`
+  headers. Treat this as a separate, product-surface-specific collection path requiring
+  validation.
+- Claude.ai SSE response bodies contain `message_limit` objects with unrounded
+  utilization doubles (e.g., 0.16327272727272726). She-llac used these values with a
+  Stern-Brocot search to reverse-engineer exact denominators.
 - Key finding: Max 20x has 20x session limits but only ~2x weekly capacity vs Max 5x. Max 5x overdelivers (6x session, 8x+ weekly vs Pro).
 - Warnings only appear at 70% utilization; Claude Code suppresses warnings below that as "potentially stale."
 - Anthropic shortened server-side prompt cache from 1 hour to 5 minutes (discovered through logs).
@@ -202,9 +206,9 @@ Last updated: 2026-07-09
 
 ## Reverse Engineering Methodology Catalog
 
-### Technique 1: SSE Header Extraction (Claude)
-- Intercept `anthropic-ratelimit-unified-*` headers from API responses
-- Extract unrounded utilization floats
+### Technique 1: SSE Message-Limit Extraction (Claude.ai)
+- Intercept `message_limit` objects in Claude.ai SSE response bodies
+- Extract unrounded utilization floats from their window data
 - Apply Stern-Brocot tree to recover exact denominators
 - Source: she-llac.com/claude-limits
 
@@ -249,6 +253,10 @@ Last updated: 2026-07-09
 | LiteLLM | 100+ LLM providers | Proxy server | Budget enforcement | Free/OSS |
 | Bifrost | Multiple | AI Gateway | Rate limiting + quotas | Free/OSS |
 | Langfuse | Multiple | Observability platform | Cost tracking + tracing | Free/OSS |
+
+ClaudeBar was studied separately as a reference for provider-specific collection
+interfaces and data quality. See
+[ClaudeBar Provider-Usage Research and Implementation Plan](claudebar-provider-research.md).
 
 ---
 
