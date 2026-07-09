@@ -1,7 +1,8 @@
 import { Database } from "bun:sqlite";
 import { readFileSync } from "node:fs";
 import { calculate } from "./analysis.ts";
-import { schema } from "./schema.ts";
+import { migrate } from "./schema.ts";
+import { collectIssues } from "./validation.ts";
 import type { CalibrationRun, ReportRecord, Result } from "./types.ts";
 
 type JsonValue = string | number | boolean | null;
@@ -41,7 +42,7 @@ export function openDatabase(path: string, create = false): Database {
 export function initializeDatabase(path: string): void {
   const db = openDatabase(path, true);
   try {
-    db.exec(schema);
+    migrate(db);
   } finally {
     db.close();
   }
@@ -77,19 +78,23 @@ export function insertRun(db: Database, row: JsonRow): number {
   }
   const preUsage = number(row, "pre_usage");
   const postUsage = number(row, "post_usage");
+  const evidenceKind = typeof row.evidence_kind === "string" ? row.evidence_kind : "manual";
+  if (evidenceKind !== "manual" && evidenceKind !== "paired-snapshots") {
+    throw new Error(`evidence_kind must be 'manual' or 'paired-snapshots', got ${evidenceKind}`);
+  }
   db.run(
     `INSERT INTO runs(
       measurement_id,benchmark_source_id,task_id,harness_environment_id,started_at,
       ended_at,pre_usage,post_usage,usage_delta,api_equivalent_usd,success,retries,
-      limit_event,aborted,peak_hours,promotion,notes
-    ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      limit_event,aborted,peak_hours,promotion,evidence_kind,notes
+    ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     [
       measurementId, benchmarkSourceId, text(row, "task_id"),
       text(row, "harness_environment_id"), text(row, "started_at"), text(row, "ended_at"),
       preUsage, postUsage, Math.abs(postUsage - preUsage), number(row, "api_equivalent_usd"),
       number(row, "success"), number(row, "retries", 0), number(row, "limit_event", 0),
       number(row, "aborted", 0), number(row, "peak_hours", 0),
-      number(row, "promotion", 0), nullable(row, "notes"),
+      number(row, "promotion", 0), evidenceKind, nullable(row, "notes"),
     ],
   );
   return Number(db.query<{ id: number }, []>("SELECT last_insert_rowid() id").get()!.id);
@@ -168,6 +173,8 @@ export function insertUsageSnapshots(
         );
       }
     }
+    // Paired snapshots are the strong evidence tier; upgrade the run's evidence_kind.
+    db.run("UPDATE runs SET evidence_kind='paired-snapshots' WHERE id=?", [runId]);
   });
   transaction();
 }
@@ -219,13 +226,13 @@ export function loadBundle(db: Database, path: string): Record<string, number> {
       db.run(
         `INSERT OR REPLACE INTO task_costs(
           benchmark_source_id,provider_id,model,model_version,pass_at_1,avg_cost_usd,
-          avg_output_tokens,avg_steps,sample_size
-        ) VALUES(?,?,?,?,?,?,?,?,?)`,
+          avg_output_tokens,avg_steps,sample_size,artifact_sha256
+        ) VALUES(?,?,?,?,?,?,?,?,?,?)`,
         [
           sourceId, providerId, text(row, "model"), text(row, "model_version"),
           number(row, "pass_at_1"), number(row, "avg_cost_usd"),
           number(row, "avg_output_tokens"), number(row, "avg_steps"),
-          number(row, "sample_size"),
+          number(row, "sample_size"), nullable(row, "artifact_sha256"),
         ],
       );
     }
@@ -237,20 +244,40 @@ export function loadBundle(db: Database, path: string): Record<string, number> {
         db, "SELECT id FROM plans WHERE provider_id=? AND slug=?",
         [providerId, text(row, "plan")],
       );
+      // D3: bind the measurement to exactly one economics record by model, or record a
+      // named economics gap. Exactly one of the two must be present.
+      const economicsModel = row.task_cost_model;
+      const economicsGap = nullable(row, "economics_gap");
+      let taskCostRef: number | null = null;
+      if (typeof economicsModel === "string") {
+        taskCostRef = identifier(
+          db,
+          "SELECT id FROM task_costs WHERE provider_id=? AND model=? AND model_version=?",
+          [providerId, economicsModel, text(row, "task_cost_model_version")],
+        );
+      }
+      if (taskCostRef === null && economicsGap === null) {
+        throw new Error(
+          `subscription measurement for ${text(row, "model")} needs task_cost_model or economics_gap`,
+        );
+      }
       db.run(
         `INSERT OR REPLACE INTO subscription_measurements(
-          plan_id,model,model_version,product_surface,product_version,measurement_start,
-          measurement_end,quota_capacity,quota_unit,measurement_grade,confidence_level,
-          peak_hours,promotion,conditions
-        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+          plan_id,task_cost_ref,economics_gap,model,model_version,product_surface,
+          product_version,measurement_start,measurement_end,quota_capacity,quota_unit,
+          quota_window_days,measurement_grade,confidence_level,peak_hours,promotion,
+          isolation_confirmed_at,isolation_confirmed_by,environment_id,publishable,conditions
+        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
         [
-          planId, text(row, "model"), text(row, "model_version"),
+          planId, taskCostRef, economicsGap, text(row, "model"), text(row, "model_version"),
           text(row, "product_surface"), text(row, "product_version"),
           text(row, "measurement_start"), text(row, "measurement_end"),
           number(row, "quota_capacity"), text(row, "quota_unit"),
-          text(row, "measurement_grade"), number(row, "confidence_level", 0.95),
-          number(row, "peak_hours", 0), number(row, "promotion", 0),
-          nullable(row, "conditions"),
+          number(row, "quota_window_days"), text(row, "measurement_grade"),
+          number(row, "confidence_level", 0.95), number(row, "peak_hours", 0),
+          number(row, "promotion", 0), nullable(row, "isolation_confirmed_at"),
+          nullable(row, "isolation_confirmed_by"), nullable(row, "environment_id"),
+          number(row, "publishable", 1), nullable(row, "conditions"),
         ],
       );
     }
@@ -268,68 +295,135 @@ export function loadBundle(db: Database, path: string): Record<string, number> {
 interface Cell {
   id: number;
   price: number;
+  billing_days: number;
   plan: string;
   provider: string;
-  task_cost_id: number;
-  avg_cost_usd: number;
-  pass_at_1: number;
+  task_cost_ref: number | null;
+  economics_gap: string | null;
+  task_cost_id: number | null;
+  avg_cost_usd: number | null;
+  pass_at_1: number | null;
   quota_capacity: number;
+  quota_window_days: number;
   confidence_level: number;
   model: string;
   product_surface: string;
   measurement_grade: string;
   promotion: number;
+  publishable: number;
   measurement_start: string;
   measurement_end: string;
 }
 
-function resultParams(cell: Cell, result: Result): (string | number)[] {
+function resultParams(cell: Cell, result: Result, publishable: boolean): (string | number | null)[] {
   return [
     cell.id, cell.task_cost_id, new Date().toISOString(), result.runCount,
-    result.successCount, result.successCiLow, result.successCiHigh,
+    result.successCount, result.nativeSuccessRate, result.successCiLow, result.successCiHigh,
     result.conversionFactor, result.medianDrain, result.p90Drain, result.drainCiLow,
-    result.drainCiHigh, result.successfulTasksPerPeriod, result.successfulTasksCiLow,
-    result.successfulTasksCiHigh, result.subscriptionValueIndex,
+    result.drainCiHigh, result.windowPrice, result.nativeTasksPerWindow,
+    result.nativeTasksCiLow, result.nativeTasksCiHigh,
+    result.benchmarkEquivalentTasksPerWindow, result.subscriptionValueIndex,
+    result.subscriptionValueIndexCiLow, result.subscriptionValueIndexCiHigh,
     result.apiCostPerSuccess, result.apiTasksPerDollar, result.apiValueMultiple,
-    result.breakEvenTasks, result.limitInterruptionRate, result.medianTaskSeconds,
+    result.breakEvenTasks, result.economicsGap, publishable ? 1 : 0,
+    result.limitInterruptionRate, result.medianTaskSeconds,
   ];
 }
 
-export function analyzeDatabase(db: Database): ReportRecord[] {
+export interface AnalysisReport {
+  records: ReportRecord[];
+  /** Human-readable caveats: skipped cells and publishability downgrades. */
+  caveats: string[];
+}
+
+// Analyze every measurement cell, failing closed on publishability. Validation runs first;
+// any publishability issue on a measurement that still claims `publishable = 1` aborts the
+// analysis unless `force` is set, in which case the affected result row is stamped
+// `publishable = 0` and a caveat is recorded. Hard integrity issues always abort.
+export function analyze(db: Database, force = false): AnalysisReport {
+  const issues = collectIssues(db);
+  const hardIssues = issues.filter((issue) => !issue.publishabilityOnly);
+  if (hardIssues.length > 0) {
+    throw new Error(`validation failed:\n${hardIssues.map((issue) => issue.message).join("\n")}`);
+  }
+  // Measurements with an outstanding publishability issue that still claim publishable=1.
+  const flagged = db.query<{ id: number; publishable: number }, []>(
+    "SELECT id, publishable FROM subscription_measurements",
+  ).all();
+  const publishableFlag = new Map(flagged.map((row) => [row.id, row.publishable === 1]));
+  const blocked = new Map<number, string[]>();
+  for (const issue of issues) {
+    if (issue.measurementId === null) continue;
+    if (!issue.publishabilityOnly) continue;
+    if (!publishableFlag.get(issue.measurementId)) continue;
+    const list = blocked.get(issue.measurementId) ?? [];
+    list.push(issue.message);
+    blocked.set(issue.measurementId, list);
+  }
+  if (blocked.size > 0 && !force) {
+    const detail = [...blocked.values()].flat().join("\n");
+    throw new Error(
+      `analysis blocked: publishable measurements have unresolved issues (use --force to compute non-publishable):\n${detail}`,
+    );
+  }
+
   const cells = db.query<Cell, []>(
-    `SELECT sm.*, p.price, p.slug plan, pr.slug provider, tc.id task_cost_id,
-      tc.avg_cost_usd, tc.pass_at_1
+    `SELECT sm.*, p.price, p.billing_days, p.slug plan, pr.slug provider,
+      tc.id task_cost_id, tc.avg_cost_usd, tc.pass_at_1
      FROM subscription_measurements sm
      JOIN plans p ON p.id=sm.plan_id
      JOIN providers pr ON pr.id=p.provider_id
-     JOIN task_costs tc ON tc.provider_id=pr.id AND tc.model=sm.model
+     LEFT JOIN task_costs tc ON tc.id=sm.task_cost_ref
      ORDER BY pr.slug,p.slug,sm.model,sm.promotion`,
   ).all();
   const records: ReportRecord[] = [];
+  const caveats: string[] = [];
   const transaction = db.transaction(() => {
     for (const cell of cells) {
       const runs = db.query<CalibrationRun, [number, number]>(
         "SELECT * FROM runs WHERE measurement_id=? AND promotion=?",
       ).all(cell.id, cell.promotion);
-      if (runs.length === 0) continue;
+      if (runs.length === 0) {
+        caveats.push(`measurement ${cell.id} (${cell.provider}/${cell.model}) skipped: no runs`);
+        continue;
+      }
+      const publishable = (publishableFlag.get(cell.id) ?? false) && !blocked.has(cell.id);
+      if (!publishable) {
+        caveats.push(
+          `measurement ${cell.id} (${cell.provider}/${cell.model}) marked non-publishable`
+          + (blocked.has(cell.id) ? `: ${blocked.get(cell.id)!.join("; ")}` : ""),
+        );
+      }
+      // The drain anchor is the economics avg_cost_usd when a published record is bound.
+      // With an economics gap there is no benchmark-average cost, so anchor on the mean of
+      // the runs' own api_equivalent_usd — the native metric stays computable, only the
+      // published-pass@1 comparison drops out.
+      const averageCostUsd = cell.avg_cost_usd
+        ?? runs.reduce((sum, run) => sum + run.api_equivalent_usd, 0) / runs.length;
       const result = calculate({
         runs,
         quotaCapacity: cell.quota_capacity,
+        quotaWindowDays: cell.quota_window_days,
         planPrice: cell.price,
-        averageCostUsd: cell.avg_cost_usd,
+        billingDays: cell.billing_days,
+        averageCostUsd,
         publishedPassAt1: cell.pass_at_1,
+        economicsGap: cell.economics_gap ?? undefined,
+        measurementGrade: cell.measurement_grade,
         confidence: cell.confidence_level,
       });
       db.run(
         `INSERT OR REPLACE INTO results(
           measurement_id,task_cost_id,computed_at,run_count,success_count,
-          success_ci_low,success_ci_high,conversion_factor,median_drain,p90_drain,
-          drain_ci_low,drain_ci_high,successful_tasks_per_period,
-          successful_tasks_ci_low,successful_tasks_ci_high,subscription_value_index,
-          api_cost_per_success,api_tasks_per_dollar,api_value_multiple,break_even_tasks,
+          native_success_rate,success_ci_low,success_ci_high,conversion_factor,
+          median_drain,p90_drain,drain_ci_low,drain_ci_high,window_price,
+          native_tasks_per_window,native_tasks_ci_low,native_tasks_ci_high,
+          benchmark_equivalent_tasks_per_window,subscription_value_index,
+          svi_ci_low,svi_ci_high,api_cost_per_success,api_tasks_per_dollar,
+          api_value_multiple,break_even_tasks,economics_gap,publishable,
           limit_interruption_rate,median_task_seconds
-        ) VALUES(${Array.from({ length: 22 }, () => "?").join(",")})`,
-        resultParams(cell, result),
+        ) VALUES(${Array.from({ length: 29 }, () => "?").join(",")})`,
+        resultParams(cell, result, publishable),
       );
       records.push({
         provider: cell.provider,
@@ -338,23 +432,39 @@ export function analyzeDatabase(db: Database): ReportRecord[] {
         surface: cell.product_surface,
         grade: cell.measurement_grade,
         promotion: Boolean(cell.promotion),
+        publishable,
         n: result.runCount,
-        success_rate: round(result.successCount / result.runCount, 3),
+        success_rate: round(result.nativeSuccessRate, 3),
         success_ci: `${result.successCiLow.toFixed(3)}-${result.successCiHigh.toFixed(3)}`,
         median_drain: round(result.medianDrain, 4),
         p90_drain: round(result.p90Drain, 4),
-        tasks_per_period: round(result.successfulTasksPerPeriod, 2),
-        tasks_ci:
-          `${result.successfulTasksCiLow.toFixed(2)}-${result.successfulTasksCiHigh.toFixed(2)}`,
+        window_days: cell.quota_window_days,
+        window_price: round(result.windowPrice, 2),
+        native_tasks_per_window: round(result.nativeTasksPerWindow, 2),
+        native_tasks_ci:
+          `${result.nativeTasksCiLow.toFixed(2)}-${result.nativeTasksCiHigh.toFixed(2)}`,
+        benchmark_equivalent_tasks_per_window:
+          result.benchmarkEquivalentTasksPerWindow === null
+            ? null
+            : round(result.benchmarkEquivalentTasksPerWindow, 2),
         svi: round(result.subscriptionValueIndex, 3),
-        api_value_multiple: round(result.apiValueMultiple, 2),
-        break_even_tasks: round(result.breakEvenTasks, 2),
+        svi_ci: `${result.subscriptionValueIndexCiLow.toFixed(3)}-${result.subscriptionValueIndexCiHigh.toFixed(3)}`,
+        api_value_multiple:
+          result.apiValueMultiple === null ? null : round(result.apiValueMultiple, 2),
+        break_even_tasks:
+          result.breakEvenTasks === null ? null : round(result.breakEvenTasks, 2),
+        economics_gap: result.economicsGap,
         window: `${cell.measurement_start}/${cell.measurement_end}`,
       });
     }
   });
   transaction();
-  return records;
+  return { records, caveats };
+}
+
+// Backward-compatible shape: return just the records. Fails closed (no force).
+export function analyzeDatabase(db: Database): ReportRecord[] {
+  return analyze(db).records;
 }
 
 function round(value: number, digits: number): number {
@@ -362,33 +472,4 @@ function round(value: number, digits: number): number {
   return Math.round(value * factor) / factor;
 }
 
-export function validateDatabase(db: Database): string[] {
-  const issues: string[] = [];
-  const integrity = db.query<{ integrity_check: string }, []>("PRAGMA integrity_check").get();
-  if (integrity?.integrity_check !== "ok") {
-    issues.push(`database integrity: ${integrity?.integrity_check ?? "unknown"}`);
-  }
-  const samples = db.query<{ id: number; n: number }, []>(
-    `SELECT sm.id, COUNT(r.id) n FROM subscription_measurements sm
-     LEFT JOIN runs r ON r.measurement_id=sm.id AND r.promotion=sm.promotion
-     GROUP BY sm.id HAVING n < 5 OR n > 10`,
-  ).all();
-  issues.push(...samples.map((row) =>
-    `measurement ${row.id} has ${row.n} calibration runs; v1 requires 5-10`
-  ));
-  const mixed = db.query<{ measurement_id: number }, []>(
-    `SELECT measurement_id FROM runs GROUP BY measurement_id
-     HAVING MIN(promotion) != MAX(promotion)`,
-  ).all();
-  issues.push(...mixed.map((row) =>
-    `measurement ${row.measurement_id} mixes baseline and promotion runs`
-  ));
-  const environments = db.query<{ measurement_id: number }, []>(
-    `SELECT measurement_id FROM runs GROUP BY measurement_id
-     HAVING COUNT(DISTINCT harness_environment_id) > 1`,
-  ).all();
-  issues.push(...environments.map((row) =>
-    `measurement ${row.measurement_id} mixes harness environments`
-  ));
-  return issues;
-}
+export { validateDatabase } from "./validation.ts";

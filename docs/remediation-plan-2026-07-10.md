@@ -1,7 +1,15 @@
 # Remediation plan — response to adversarial review 2026-07-10
 
-Status: PROPOSAL. Addresses [adversarial-project-review-2026-07-10.md](adversarial-project-review-2026-07-10.md).
+Status: IMPLEMENTED (2026-07-10). Addresses [adversarial-project-review-2026-07-10.md](adversarial-project-review-2026-07-10.md).
 All five P0 findings were independently verified against the code and confirmed real.
+
+**Implementation note (D3 divergence):** the plan assumed GLM-5.2 economics are present in
+the DeepSWE v1.1 source. They are not — the benchmark models are claude-fable-5,
+claude-sonnet-5, claude-opus-4-8, and gpt-5-5 only. Per D3's own fallback, the Z.ai study
+therefore ships with `economics_gap` and no economics record (native SVI computed, no API
+comparison), rather than a fabricated GLM-5.2 row. The regenerated example bundles are
+non-publishable templates (`publishable: 0`, placeholder attestation/artifact SHA) pending
+a real `select:tasks` run and operator isolation attestation.
 
 ## Verification of the review's P0 claims
 

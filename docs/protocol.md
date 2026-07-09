@@ -33,6 +33,13 @@ Transcribe the adopted benchmark snapshot into a JSON bundle. Preserve its neutr
 harness, effort level, model version, sample size, pass@1, and average cost per attempted
 task. Keep a dated source URL. Do not silently combine effort levels.
 
+Economics are **per model**: each `task_costs` entry is one `(benchmark_model, effort)`
+pair with that model's own pass@1 and cost. Never label a cross-model aggregate as a
+single model. Each measurement binds to exactly one economics record by `task_cost_model`
+(an explicit foreign key). If the benchmark does not cover the measured model, the
+measurement carries an `economics_gap` string instead and ships with no API-cost
+comparison — a valid, honestly-labeled result, not a substitution.
+
 ## 4. Calibrate drain
 
 Use 5–10 representative tasks per cell. Immediately before and after each task, capture
@@ -58,6 +65,14 @@ floats are grade `exact`; displayed rounded percentages are `rounded`; depletion
 capacity is `inferred`; insufficient evidence is `unknown`. Record statistical confidence
 separately.
 
+Record `quota_window_days` alongside capacity — the length of the quota window in days
+(weekly = 7, monthly = 30). The window is the canonical unit of measurement: capacity is
+measured against it and the plan price is prorated into it
+(`window_price = price × quota_window_days / billing_days`). SVI is native successful
+tasks per window per window-dollar, so results from different providers with different
+windows remain comparable. **A study whose quota window cannot be stated is not
+publishable** — a rolling limit with no justifiable window is rejected in validation.
+
 For Claude cells, prefer grade `exact` by reading utilization floats from the
 `message_limit` objects in Claude.ai SSE response bodies; cross-check them against
 displayed percentages during the first runs of each cell before relying on them. This
@@ -66,9 +81,22 @@ validate the selected collection path on the measured product surface.
 
 ## 6. Validate and publish
 
-Run validation before analysis. Run the cross-source sanity check: compare the adopted
-benchmark's pass@1 and cost-per-task against independent sources (Aider, MorphLLM,
-Ivern AI) for the same models, and flag wild divergence in the report's caveats.
-Publish the JSON or CSV data, generated report,
-measurement grade, sample sizes, median and p90 drain, confidence intervals, conditions,
-and the harness-mismatch disclaimer. Results expire at the end of their stated window.
+Analysis runs validation first and **fails closed**: a measurement still flagged
+`publishable = 1` that carries any publishability issue — missing isolation attestation,
+manual (non-snapshot) runs, `unknown`-grade capacity, no quota window, fewer than five
+valid runs, or an unresolved economics binding — aborts the analysis. `analyze --force`
+computes anyway but stamps every affected result row `publishable = 0`. Manual
+`subbench run` input records `evidence_kind = manual` and is non-publishable by default.
+
+The isolation attestation from §2 is recorded as data on the measurement
+(`isolation_confirmed_at`, `isolation_confirmed_by`); the calibration runners refuse to
+start without `--confirm-isolation "<operator>"`.
+
+Run the cross-source sanity check: compare the adopted benchmark's pass@1 and
+cost-per-task against independent sources (Aider, MorphLLM, Ivern AI) for the same models,
+and flag wild divergence in the report's caveats. Publish the JSON or CSV data, generated
+report, measurement grade, sample sizes, median and p90 drain, the bootstrap interval over
+calibration runs, conditions, and the harness-mismatch disclaimer. The report names two
+estimands: the **primary native** metric (native successful tasks per window, from the
+native success rate) and the **secondary benchmark-equivalent** throughput (published
+pass@1, the API-comparison anchor). Results expire at the end of their stated window.

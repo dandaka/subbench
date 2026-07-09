@@ -5,10 +5,12 @@ import { resolve } from "node:path";
 import {
   initializeDatabase,
   insertRun,
+  insertUsageSnapshots,
   loadBundle,
   openDatabase,
 } from "../packages/core/src/index.ts";
-import { readCodexUsage } from "../packages/cli/src/codex-usage.ts";
+import { readCodexUsageSnapshot } from "../packages/cli/src/codex-usage.ts";
+import { selectWindow } from "../packages/cli/src/usage.ts";
 
 interface SelectedTask {
   id: string;
@@ -38,6 +40,32 @@ const selection = JSON.parse(readFileSync(selectionPath, "utf8")) as Selection;
 function option(name: string): string | undefined {
   const index = process.argv.indexOf(name);
   return index < 0 ? undefined : process.argv[index + 1];
+}
+
+// D4: refuse to run without an operator isolation attestation (see protocol.md §2).
+function requireIsolationOperator(): string {
+  const operator = option("--confirm-isolation");
+  if (!operator || operator.startsWith("--")) {
+    throw new Error(
+      "refusing to run without --confirm-isolation \"<operator>\": confirm that nothing "
+      + "else is consuming the subscription, then re-run with your name.",
+    );
+  }
+  return operator;
+}
+
+function stampIsolation(databasePath: string, operator: string, environmentId: string): void {
+  const db = openDatabase(databasePath);
+  try {
+    db.run(
+      `UPDATE subscription_measurements
+       SET isolation_confirmed_at=?, isolation_confirmed_by=?, environment_id=?
+       WHERE id=1`,
+      [new Date().toISOString(), operator, environmentId],
+    );
+  } finally {
+    db.close();
+  }
 }
 
 async function run(command: string[], quiet = false): Promise<number> {
@@ -100,25 +128,27 @@ function trialResult(jobDirectory: string): TrialResult | undefined {
   }
 }
 
+const isolationOperator = requireIsolationOperator();
 await prepare();
+const environmentId = "deepswe-v1.1-pier-0.3.0-docker-codex-0.141.0";
+stampIsolation(database, isolationOperator, environmentId);
 const task = nextTask();
-const pre = await readCodexUsage();
-if (!pre.weekly) throw new Error("Codex did not report a weekly usage window");
-if (pre.plan !== "plus") throw new Error(`expected Plus plan, got ${pre.plan ?? "unknown"}`);
-if (!pre.session) throw new Error("Codex did not report a five-hour usage window");
-if (pre.session.usedPercent >= 70) {
-  const reset = pre.session.resetsAt
-    ? new Date(pre.session.resetsAt * 1000).toISOString()
-    : "the reported reset";
+const pre = await readCodexUsageSnapshot();
+const preWeekly = selectWindow(pre, "weekly");
+const preSession = selectWindow(pre, "session");
+if ((pre.account.plan ?? "") !== "plus") {
+  throw new Error(`expected Plus plan, got ${pre.account.plan ?? "unknown"}`);
+}
+if (preSession.usedPercent >= 70) {
   throw new Error(
-    `five-hour usage is ${pre.session.usedPercent}%; wait until ${reset} before the next task`,
+    `five-hour usage is ${preSession.usedPercent}%; wait before the next task`,
   );
 }
 
 const jobName = `openai-plus-${task.id}-${Date.now()}`;
 const jobDirectory = resolve(jobs, jobName);
 const startedAt = new Date();
-console.log(`Running ${task.id}; weekly usage is ${pre.weekly.usedPercent}%`);
+console.log(`Running ${task.id}; weekly usage is ${preWeekly.usedPercent}%`);
 const exitCode = await run([
   "pier", "run",
   "--path", resolve(benchmark, "tasks", task.id),
@@ -146,9 +176,12 @@ if (!result.agent_result || !result.verifier_result) {
     + `See ${jobDirectory}`,
   );
 }
-const post = await readCodexUsage();
-if (!post.weekly) throw new Error("Codex did not report a weekly usage window after the run");
-if (pre.weekly.resetsAt !== post.weekly.resetsAt) {
+const post = await readCodexUsageSnapshot();
+const postWeekly = selectWindow(post, "weekly");
+if (post.account.idHash !== pre.account.idHash) {
+  throw new Error("account changed between pre- and post-read; run discarded");
+}
+if (preWeekly.resetsAt !== postWeekly.resetsAt) {
   throw new Error("weekly quota reset during the run; refusing to record an invalid delta");
 }
 const success = exitCode === 0
@@ -160,11 +193,11 @@ try {
     measurement_id: 1,
     benchmark_source_id: 1,
     task_id: task.id,
-    harness_environment_id: "deepswe-v1.1-pier-0.3.0-docker-codex-0.141.0",
+    harness_environment_id: environmentId,
     started_at: startedAt.toISOString(),
     ended_at: endedAt.toISOString(),
-    pre_usage: pre.weekly.usedPercent,
-    post_usage: post.weekly.usedPercent,
+    pre_usage: preWeekly.usedPercent,
+    post_usage: postWeekly.usedPercent,
     api_equivalent_usd: task.gpt_5_5_avg_cost_usd,
     success: success ? 1 : 0,
     retries: 0,
@@ -174,9 +207,17 @@ try {
     promotion: 0,
     notes: `Pier job ${jobName}; exit ${exitCode}`,
   });
+  // D4: persist paired pre/post snapshots so the run carries publishable evidence,
+  // matching the Claude and Z.ai runners.
+  try {
+    insertUsageSnapshots(db, runId, pre, post, "weekly");
+  } catch (error) {
+    db.run("DELETE FROM runs WHERE id=?", [runId]);
+    throw error;
+  }
   console.log(
     `Recorded run ${runId}: ${success ? "pass" : "fail"}, weekly usage `
-    + `${pre.weekly.usedPercent}% -> ${post.weekly.usedPercent}%`,
+    + `${preWeekly.usedPercent}% -> ${postWeekly.usedPercent}%`,
   );
 } finally {
   db.close();

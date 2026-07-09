@@ -29,24 +29,36 @@ CREATE TABLE IF NOT EXISTS task_costs (
   avg_output_tokens REAL CHECK(avg_output_tokens >= 0),
   avg_steps REAL CHECK(avg_steps >= 0),
   sample_size INTEGER NOT NULL CHECK(sample_size > 0),
+  artifact_sha256 TEXT,
   UNIQUE(benchmark_source_id, provider_id, model, model_version)
 );
 CREATE TABLE IF NOT EXISTS subscription_measurements (
   id INTEGER PRIMARY KEY,
   plan_id INTEGER NOT NULL REFERENCES plans(id),
+  -- D3: explicit foreign key binding this measurement to exactly one economics record.
+  -- NULL is permitted only together with a non-null economics_gap (no compatible
+  -- published economics; the study ships with svi computed but no API comparison).
+  task_cost_ref INTEGER REFERENCES task_costs(id),
+  economics_gap TEXT,
   model TEXT NOT NULL, model_version TEXT NOT NULL DEFAULT '',
   product_surface TEXT NOT NULL, product_version TEXT NOT NULL,
   measurement_start TEXT NOT NULL, measurement_end TEXT NOT NULL,
   quota_capacity REAL NOT NULL CHECK(quota_capacity > 0), quota_unit TEXT NOT NULL,
+  -- D1: length of the quota window in days; capacity and drain are measured against it.
+  quota_window_days INTEGER NOT NULL CHECK(quota_window_days > 0),
   measurement_grade TEXT NOT NULL
     CHECK(measurement_grade IN ('exact','rounded','inferred','unknown')),
   confidence_level REAL NOT NULL DEFAULT 0.95
     CHECK(confidence_level > 0 AND confidence_level < 1),
   peak_hours INTEGER NOT NULL DEFAULT 0 CHECK(peak_hours IN (0,1)),
   promotion INTEGER NOT NULL DEFAULT 0 CHECK(promotion IN (0,1)),
+  -- D4: isolation attestation as data.
+  isolation_confirmed_at TEXT, isolation_confirmed_by TEXT, environment_id TEXT,
+  publishable INTEGER NOT NULL DEFAULT 1 CHECK(publishable IN (0,1)),
   conditions TEXT,
   UNIQUE(plan_id, model, model_version, product_surface, product_version,
-         measurement_start, promotion)
+         measurement_start, promotion),
+  CHECK(task_cost_ref IS NOT NULL OR economics_gap IS NOT NULL)
 );
 CREATE TABLE IF NOT EXISTS runs (
   id INTEGER PRIMARY KEY,
@@ -63,6 +75,9 @@ CREATE TABLE IF NOT EXISTS runs (
   aborted INTEGER NOT NULL DEFAULT 0 CHECK(aborted IN (0,1)),
   peak_hours INTEGER NOT NULL DEFAULT 0 CHECK(peak_hours IN (0,1)),
   promotion INTEGER NOT NULL DEFAULT 0 CHECK(promotion IN (0,1)),
+  -- D4: how the drain was evidenced. 'manual' (hand-entered numbers) is non-publishable.
+  evidence_kind TEXT NOT NULL DEFAULT 'manual'
+    CHECK(evidence_kind IN ('paired-snapshots','manual')),
   notes TEXT, CHECK(ended_at >= started_at)
 );
 CREATE TABLE IF NOT EXISTS usage_snapshots (
@@ -86,20 +101,56 @@ CREATE TABLE IF NOT EXISTS usage_snapshot_windows (
 CREATE TABLE IF NOT EXISTS results (
   id INTEGER PRIMARY KEY,
   measurement_id INTEGER NOT NULL REFERENCES subscription_measurements(id),
-  task_cost_id INTEGER NOT NULL REFERENCES task_costs(id),
+  task_cost_id INTEGER REFERENCES task_costs(id),
   computed_at TEXT NOT NULL, run_count INTEGER NOT NULL, success_count INTEGER NOT NULL,
+  native_success_rate REAL NOT NULL,
   success_ci_low REAL NOT NULL, success_ci_high REAL NOT NULL,
   conversion_factor REAL NOT NULL, median_drain REAL NOT NULL, p90_drain REAL NOT NULL,
   drain_ci_low REAL NOT NULL, drain_ci_high REAL NOT NULL,
-  successful_tasks_per_period REAL NOT NULL,
-  successful_tasks_ci_low REAL NOT NULL, successful_tasks_ci_high REAL NOT NULL,
-  subscription_value_index REAL NOT NULL, api_cost_per_success REAL NOT NULL,
-  api_tasks_per_dollar REAL NOT NULL, api_value_multiple REAL NOT NULL,
-  break_even_tasks REAL NOT NULL, limit_interruption_rate REAL NOT NULL,
-  median_task_seconds REAL NOT NULL,
+  window_price REAL NOT NULL,
+  native_tasks_per_window REAL NOT NULL,
+  native_tasks_ci_low REAL NOT NULL, native_tasks_ci_high REAL NOT NULL,
+  benchmark_equivalent_tasks_per_window REAL,
+  subscription_value_index REAL NOT NULL,
+  svi_ci_low REAL NOT NULL, svi_ci_high REAL NOT NULL,
+  api_cost_per_success REAL, api_tasks_per_dollar REAL, api_value_multiple REAL,
+  break_even_tasks REAL, economics_gap TEXT,
+  publishable INTEGER NOT NULL DEFAULT 1 CHECK(publishable IN (0,1)),
+  limit_interruption_rate REAL NOT NULL, median_task_seconds REAL NOT NULL,
   UNIQUE(measurement_id, task_cost_id)
 );
 CREATE INDEX IF NOT EXISTS runs_measurement_idx ON runs(measurement_id);
 CREATE INDEX IF NOT EXISTS usage_snapshots_run_idx ON usage_snapshots(run_id);
 CREATE INDEX IF NOT EXISTS task_costs_model_idx ON task_costs(provider_id, model);
 `;
+
+// Columns added after the v1 schema shipped. Applied idempotently to existing databases:
+// SQLite ADD COLUMN is a no-op-safe forward migration (we swallow "duplicate column").
+const migrations: Array<{ table: string; column: string; definition: string }> = [
+  { table: "task_costs", column: "artifact_sha256", definition: "TEXT" },
+  { table: "subscription_measurements", column: "task_cost_ref", definition: "INTEGER REFERENCES task_costs(id)" },
+  { table: "subscription_measurements", column: "economics_gap", definition: "TEXT" },
+  { table: "subscription_measurements", column: "quota_window_days", definition: "INTEGER" },
+  { table: "subscription_measurements", column: "isolation_confirmed_at", definition: "TEXT" },
+  { table: "subscription_measurements", column: "isolation_confirmed_by", definition: "TEXT" },
+  { table: "subscription_measurements", column: "environment_id", definition: "TEXT" },
+  { table: "subscription_measurements", column: "publishable", definition: "INTEGER NOT NULL DEFAULT 1" },
+  { table: "runs", column: "evidence_kind", definition: "TEXT NOT NULL DEFAULT 'manual'" },
+];
+
+interface Migratable {
+  query(sql: string): { all(): Array<{ name: string }> };
+  run(sql: string): unknown;
+}
+
+// Bring an existing database up to the current column set. New tables/indexes are created
+// by re-running `schema` (all statements are IF NOT EXISTS); new columns on pre-existing
+// tables are added here because SQLite cannot express them declaratively.
+export function migrate(db: Migratable): void {
+  db.run(schema);
+  for (const { table, column, definition } of migrations) {
+    const columns = db.query(`PRAGMA table_info(${table})`).all();
+    if (columns.some((row) => row.name === column)) continue;
+    db.run(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
+}

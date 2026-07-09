@@ -9,17 +9,39 @@ The benchmark value comes from joining those two sides.
 
 ## Formula
 
+The canonical unit is the **quota window** (weekly or monthly), not the billing period.
+Capacity is measured against the window; the price is prorated into it.
+
 ```text
-estimated successful tasks per billing period =
-  observed subscription capacity
-  / cost per successful benchmark task
+window_price = subscription price × quota_window_days / billing_days
+```
+
+Two estimands are reported, named honestly:
+
+```text
+# PRIMARY (native): what goal.md promises — successful developer work.
+native tasks per window =
+  observed capacity / (published avg cost per task × conversion factor)
+  × native_success_rate            # successCount / runCount, Wilson interval
+
+Subscription Value Index (SVI) =
+  native tasks per window / window_price
 ```
 
 ```text
-Subscription Value Index =
-  estimated successful tasks per billing period
-  / subscription price
+# SECONDARY (benchmark-equivalent): the API-comparison anchor only.
+benchmark-equivalent tasks per window =
+  observed capacity / (published avg cost per task × conversion factor)
+  × published pass@1
 ```
+
+The primary metric uses the **native** success rate from the calibration runs (five
+failures give an SVI point estimate of 0 with a wide upper bound — honest, not a bug). The
+secondary metric uses published pass@1 because the API comparison
+(`api cost per success = avg cost / pass@1`) must be internally consistent with it. When
+no compatible published economics exist, the secondary metric and API comparison are
+omitted and the measurement records an `economics_gap`; the primary native metric is still
+produced.
 
 ## V1 Strategy
 
@@ -36,10 +58,16 @@ units.
    factor: subscription-quota drain per API-equivalent dollar.
 3. Measure total usable capacity per billing period via the same usage indicators
    (and depletion experiments where indicators are too coarse).
-4. Estimated tasks per billing period = capacity ÷ (published cost per task ×
-   conversion factor) × pass@1, with failed-attempt drain accounted per the Cost
-   Accounting Rule.
-5. Publish measurement grade and statistical confidence for every estimate.
+4. Native tasks per window = capacity ÷ (published cost per task × conversion factor) ×
+   native success rate, with failed-attempt drain accounted per the Cost Accounting Rule.
+   The benchmark-equivalent secondary metric substitutes published pass@1 for the native
+   rate and is reported only as the API-comparison anchor.
+5. Publish measurement grade and statistical confidence for every estimate. Uncertainty is
+   a joint bootstrap over calibration runs — each resample recomputes (median drain factor
+   × success-indicator mean) together, so drain and success uncertainty compound — plus a
+   fixed sensitivity widening for meter rounding and capacity grade. Label it "bootstrap
+   interval over calibration runs", not a blanket 95% CI. At n=5–10 the native interval is
+   wide; that is a feature. Widen the run count if it is too wide to publish.
 
 ### Harness Mismatch Disclaimer
 
@@ -163,7 +191,10 @@ Never mix grades or hide n.
 
 ## Cost Accounting Rule
 
-Cost per successful task includes the quota drain of failed attempts and retries:
+Cost per successful task includes the quota drain of failed attempts and retries. This
+applies to the **primary native** metric: the native success rate that scales capacity is
+`successCount / runCount` over all attempts, so failed and retried attempts consume the
+window without producing a success.
 
 ```text
 drain per successful task =
@@ -198,9 +229,15 @@ Read as: "at full quota utilization, this plan delivers N× the successful work 
 same spend on API tokens."
 
 ```text
-break-even utilization (tasks per billing period) =
-  subscription price / API cost per successful task
+break-even utilization (tasks per quota window) =
+  window_price / API cost per successful task
 ```
+
+The subscription side of the comparison uses SVI (native tasks per window per
+window-dollar). The API side uses published pass@1, so the comparison is internally
+consistent only against the benchmark-equivalent estimand; the report labels it as such.
+When a measurement carries an `economics_gap` (no compatible published economics), the API
+comparison and break-even are omitted entirely.
 
 Break-even is the more decision-relevant number: the value multiple assumes the quota
 is fully drained, which real users rarely do. Below break-even tasks per period,
