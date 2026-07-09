@@ -1,0 +1,64 @@
+{
+  "providers": [
+    {
+      "slug": "zai",
+      "name": "Z.ai"
+    }
+  ],
+  "plans": [
+    {
+      "provider": "zai",
+      "slug": "coding-lite",
+      "name": "GLM Coding Lite",
+      "price": 18,
+      "currency": "USD",
+      "billing_days": 30,
+      "terms_snapshot_date": "2026-07-09",
+      "advertised_limits": "Standard Coding Plan quota through supported third-party API calls; ZCode app has a separate 150% quota benefit"
+    }
+  ],
+  "benchmark_sources": [
+    {
+      "slug": "deepswe-v1.1",
+      "name": "DeepSWE v1.1",
+      "url": "https://deepswe.datacurve.ai/",
+      "snapshot_date": "2026-07-01",
+      "harness": "mini-swe-agent",
+      "effort_level": "xhigh",
+      "task_count": 113,
+      "notes": "Published four-model aggregate economics; native Claude Code calibration has a documented harness mismatch"
+    }
+  ],
+  "task_costs": [
+    {
+      "benchmark_source": "deepswe-v1.1",
+      "provider": "zai",
+      "model": "glm-5.2",
+      "model_version": "2026-07",
+      "pass_at_1": 0.5232309941520468,
+      "avg_cost_usd": 9.066484902166485,
+      "avg_output_tokens": 0,
+      "avg_steps": 99.82705774853801,
+      "sample_size": 597
+    }
+  ],
+  "subscription_measurements": [
+    {
+      "provider": "zai",
+      "plan": "coding-lite",
+      "model": "glm-5.2",
+      "model_version": "2026-07",
+      "product_surface": "claude-code",
+      "product_version": "2.1.187",
+      "measurement_start": "2026-07-09",
+      "measurement_end": "2026-07-16",
+      "quota_capacity": 100,
+      "quota_unit": "weekly-used-percent",
+      "measurement_grade": "rounded",
+      "confidence_level": 0.95,
+      "peak_hours": 0,
+      "promotion": 0,
+      "conditions": "GLM Coding Lite standard API-call quota; ZCode app-only 150% benefit excluded; Claude opus alias pinned to glm-5.2; xhigh effort; Pier 0.3.0; Docker; sequential runs"
+    }
+  ]
+}

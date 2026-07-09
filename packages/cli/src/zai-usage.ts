@@ -54,6 +54,8 @@ export function zaiSnapshotFromResponse(
   metadata: { requestedAt?: string; respondedAt?: string; endpoint?: string; idHash?: string | null } = {},
 ): UsageSnapshot {
   const respondedAt = metadata.respondedAt ?? new Date().toISOString();
+  const data = payload.data as JsonObject | undefined;
+  const plan = typeof data?.level === "string" ? data.level : null;
   const windows: UsageWindow[] = records(payload).map((row) => {
     const unit = typeof row.unit === "number" ? row.unit : null;
     return {
@@ -67,7 +69,7 @@ export function zaiSnapshotFromResponse(
   return validateSnapshot({
     schemaVersion: 1,
     provider: "zai",
-    account: { plan: null, idHash: metadata.idHash ?? null },
+    account: { plan, idHash: metadata.idHash ?? null },
     capturedAt: respondedAt,
     collector: {
       name: "zai-quota-api", version: "0.1.0", authority: "server",
@@ -84,8 +86,8 @@ export function zaiSnapshotFromResponse(
 }
 
 export async function readZaiUsageSnapshot(): Promise<UsageSnapshot> {
-  const token = process.env.ZAI_API_KEY ?? process.env.ANTHROPIC_AUTH_TOKEN;
-  if (!token) throw new UsageError("authentication", "Set ZAI_API_KEY or ANTHROPIC_AUTH_TOKEN");
+  const token = process.env.ZAI_AUTH_TOKEN ?? process.env.ANTHROPIC_AUTH_TOKEN;
+  if (!token) throw new UsageError("authentication", "Set ZAI_AUTH_TOKEN or ANTHROPIC_AUTH_TOKEN");
   const configured = process.env.ZAI_BASE_URL ?? process.env.ANTHROPIC_BASE_URL ?? "https://api.z.ai";
   const base = new URL(configured);
   if (!HOSTS.has(base.hostname) || base.protocol !== "https:") {
