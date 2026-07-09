@@ -1,13 +1,11 @@
-# Project docs
+# Benchmarking protocol
 
-Key documents in `docs/` (read the relevant one before working):
-
-- [docs/goal.md](docs/goal.md) — project goal
-- [docs/protocol.md](docs/protocol.md) — measurement protocol. **Read before running or modifying any benchmark.** Section 2 carries a mandatory operator isolation check that must be confirmed and recorded before every run, or the run is invalid.
-- [docs/methodology.md](docs/methodology.md) — methodology
-- [docs/calibration-tasks.md](docs/calibration-tasks.md) — calibration task set
-- [docs/task-selection-plan.md](docs/task-selection-plan.md) — task selection plan
-- Research: `docs/research.md`, `docs/research-*.md`, `docs/existing-research-landscape.md`, `docs/*-calibration-*.md`
+The measurement protocol lives in [docs/protocol.md](docs/protocol.md). Read it before
+running or modifying any benchmark. In particular, **Section 2 (Prepare isolation)** carries
+a mandatory operator check: before every run, the operator must manually verify and record
+confirmation that nothing else is consuming the subscription (other Claude Code sessions,
+background agents, cron/scheduled tasks, `/loop` runs, MCP servers/daemons, or teammates
+sharing the seat). A run without a recorded confirmation is invalid and must be discarded.
 
 # context-mode — MANDATORY routing rules
 

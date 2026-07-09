@@ -14,6 +14,19 @@ cannot run in a container. Install only the pinned provider client. Do not add M
 plugins, hooks, rules, custom instructions, or unrelated environment variables. Record a
 stable environment identifier.
 
+**Mandatory operator check — confirm before every run.** Subscription usage is billed per
+account, not per machine, so any other call against the same subscription during the
+measurement window contaminates the result. Before starting a run, the operator must
+manually verify and explicitly confirm that nothing else is consuming the subscription:
+
+- No other Claude Code sessions (other terminals, IDE extensions, desktop or web app).
+- No background agents, cron jobs, scheduled tasks, or `/loop` runs on the same account.
+- No MCP servers, daemons, or automations (watchers, bots) that call the model.
+- No teammates sharing the same seat making concurrent calls, from any machine.
+
+The operator records this confirmation (checkbox or signed line in the run log) before the
+first measured task. A run without a recorded confirmation is invalid and must be discarded.
+
 ## 3. Import economics
 
 Transcribe the adopted benchmark snapshot into a JSON bundle. Preserve its neutral
