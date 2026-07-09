@@ -7,6 +7,7 @@ Key documents in `docs/` (read the relevant one before working):
 - [docs/methodology.md](docs/methodology.md) — methodology
 - [docs/calibration-tasks.md](docs/calibration-tasks.md) — calibration task set
 - [docs/task-selection-plan.md](docs/task-selection-plan.md) — task selection plan
+- [docs/running-claude-max-calibration.md](docs/running-claude-max-calibration.md) — operator runbook: how to run a Claude Max calibration test
 - Research: `docs/research.md`, `docs/research-*.md`, `docs/existing-research-landscape.md`, `docs/*-calibration-*.md`
 
 # Benchmarking protocol
