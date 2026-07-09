@@ -1,3 +1,14 @@
+# Project docs
+
+Key documents in `docs/` (read the relevant one before working):
+
+- [docs/goal.md](docs/goal.md) — project goal
+- [docs/protocol.md](docs/protocol.md) — measurement protocol. **Read before running or modifying any benchmark.** Section 2 carries a mandatory operator isolation check that must be confirmed and recorded before every run, or the run is invalid.
+- [docs/methodology.md](docs/methodology.md) — methodology
+- [docs/calibration-tasks.md](docs/calibration-tasks.md) — calibration task set
+- [docs/task-selection-plan.md](docs/task-selection-plan.md) — task selection plan
+- Research: `docs/research.md`, `docs/research-*.md`, `docs/existing-research-landscape.md`, `docs/*-calibration-*.md`
+
 # Benchmarking protocol
 
 The measurement protocol lives in [docs/protocol.md](docs/protocol.md). Read it before
