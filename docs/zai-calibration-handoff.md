@@ -130,8 +130,57 @@ Do not treat a Pier setup exception, missing `agent_result`, missing
 
 ## Remaining work
 
-1. Clone/pull branch `dev` on the target Mac and restore `.env`.
-2. Ensure adequate free Docker space.
-3. Run one GLM-5.2 task and inspect its result and quota delta.
-4. If valid, complete 5–10 sequential selected tasks.
-5. Run validation and analysis only after the minimum five valid runs.
+1. Wait for the five-hour/session quota to reset before starting another task.
+2. Complete at least four more valid runs, stopping whenever a quota guard or
+   Docker-capacity check fails.
+3. Run validation and analysis only after the minimum five valid runs.
+
+## Calibration run log
+
+### 2026-07-09 — `go-git-worktree-merge-conflicts`
+
+- Machine/branch: `dandaka-mbp16`, `dev`
+- Model/product: GLM-5.2 through Claude Code on GLM Coding Lite
+- Runtime: 57 minutes
+- Validity: valid agent result, valid verifier result, no quota reset
+- Result: fail (`15/17` fail-to-pass, `2/2` pass-to-pass)
+- Weekly quota: `30% -> 46%` (`16` percentage-point delta)
+- Five-hour/session quota after the run: `79%`
+- Database: recorded as run `1` in `zai-lite.db`
+- Result artifact:
+  `.subbench/jobs/zai-lite-go-git-worktree-merge-conflicts-1783602698008/result.json`
+
+The failing case was `TestMergeDirectoryFileConflict`. The implementation
+detected the file/directory clash but attempted to write conflict-marker content
+at a path that was still a directory. The filesystem returned
+`cannot open directory: /conflict`, so the method returned before writing
+`.git/MERGE_HEAD` and before returning `ErrMergeConflicts`.
+
+This is a valid calibration observation even though the task failed: subscription
+consumption and verifier quality were both measured successfully. It is not
+enough by itself to estimate typical quota cost or success rate.
+
+## Upcoming run plan
+
+Before every run:
+
+1. Confirm `session` usage is below the runner's `70%` start guard.
+2. Confirm weekly usage and reset time; do not cross a reset during a task.
+3. Confirm Docker has adequate free internal space.
+4. Run exactly one task and wait for its verifier result.
+5. Confirm the database row, quota delta, artifact, and absence of setup errors.
+
+Recommended next tasks, in order:
+
+1. `aiomonitor-task-snapshots-diff` — Python, p25 difficulty/cost slot.
+2. `cliffy-config-file-parsing` — TypeScript, p50 slot.
+3. `katex-multicolumn-array-spans` — JavaScript, p50 slot.
+4. `boa-hierarchical-evaluation-cancellation` — Rust, p50 slot.
+
+These four runs produce a five-run minimum together with the completed Go task
+and broaden language coverage. Run no more than one task per five-hour quota
+window if the previous task leaves session usage above `70%`. Defer
+`ytt-jsonpath-query-api` until Docker has more headroom because its expanded
+image previously exhausted the smaller Docker allocation. If weekly headroom is
+insufficient, pause until the weekly reset rather than substituting an invalid
+or truncated run.
