@@ -140,6 +140,22 @@ pre-read → plan+session guards → pier run (Docker, ~50 min)
 3. Pier adapter + runner + `calibrate:claude`.
 4. Isolation-confirmed overnight run (separate Codex agent, off-hours).
 
+## Probe result (2026-07-10)
+
+`scripts/probe-claude-usage.ts` run against the live Max login:
+
+- Credential resolved from the macOS Keychain (`Claude Code-credentials`); no
+  `~/.claude/.credentials.json` on this machine. `subscriptionType: max`.
+- `GET /api/oauth/usage` with the `anthropic-beta: oauth-2025-04-20` header
+  returned **200**. No rate-limiting observed.
+- Parsed windows: `session 5%`, `weekly 4%` — matches the `limits[]` array
+  (`session`=5, `weekly_all`=4), confirming `five_hour`→session and
+  `seven_day`→weekly are the binding windows to gate/record on.
+- The only scoped bucket is `weekly_scoped / Fable @ 0%` (unused, correctly
+  ignored). Obfuscated `seven_day_*` fields carry no `utilization`.
+
+The collector and window mapping are validated; no design change required.
+
 ## Isolation
 
 Per protocol §2: the Max account must be isolated during the run. Plan: run
