@@ -1,7 +1,20 @@
 export type UsageProvider = "codex" | "zai" | "claude";
-export type UsageAuthority = "server" | "official-client" | "display" | "local-reconstruction";
-export type UsagePrecision = "exact" | "decimal" | "integer-percent" | "unknown";
-export type UsageWindowKind = "session" | "weekly" | "monthly" | "mcp" | "unknown";
+export type UsageAuthority =
+  | "server"
+  | "official-client"
+  | "display"
+  | "local-reconstruction";
+export type UsagePrecision =
+  | "exact"
+  | "decimal"
+  | "integer-percent"
+  | "unknown";
+export type UsageWindowKind =
+  | "session"
+  | "weekly"
+  | "monthly"
+  | "mcp"
+  | "unknown";
 
 export interface UsageWindow {
   kind: UsageWindowKind;
@@ -31,7 +44,12 @@ export interface UsageSnapshot {
 
 export class UsageError extends Error {
   constructor(
-    public readonly category: "authentication" | "rate-limited" | "invalid-response" | "missing-window" | "network",
+    public readonly category:
+      | "authentication"
+      | "rate-limited"
+      | "invalid-response"
+      | "missing-window"
+      | "network",
     message: string,
   ) {
     super(message);
@@ -40,29 +58,62 @@ export class UsageError extends Error {
 }
 
 export function validateSnapshot(snapshot: UsageSnapshot): UsageSnapshot {
-  if (snapshot.schemaVersion !== 1 || !snapshot.provider || !snapshot.capturedAt) {
-    throw new UsageError("invalid-response", "Malformed usage snapshot metadata");
+  if (
+    snapshot.schemaVersion !== 1 ||
+    !snapshot.provider ||
+    !snapshot.capturedAt
+  ) {
+    throw new UsageError(
+      "invalid-response",
+      "Malformed usage snapshot metadata",
+    );
   }
   if (!Number.isFinite(Date.parse(snapshot.capturedAt))) {
-    throw new UsageError("invalid-response", "Malformed usage capture timestamp");
+    throw new UsageError(
+      "invalid-response",
+      "Malformed usage capture timestamp",
+    );
   }
   if (snapshot.windows.length === 0) {
-    throw new UsageError("missing-window", `${snapshot.provider} reported no usage windows`);
+    throw new UsageError(
+      "missing-window",
+      `${snapshot.provider} reported no usage windows`,
+    );
   }
   for (const window of snapshot.windows) {
-    if (!Number.isFinite(window.usedPercent) || window.usedPercent < 0 || window.usedPercent > 100) {
-      throw new UsageError("invalid-response", `Invalid ${window.kind} used percentage`);
+    if (
+      !Number.isFinite(window.usedPercent) ||
+      window.usedPercent < 0 ||
+      window.usedPercent > 100
+    ) {
+      throw new UsageError(
+        "invalid-response",
+        `Invalid ${window.kind} used percentage`,
+      );
     }
-    if (window.resetsAt !== null && !Number.isFinite(Date.parse(window.resetsAt))) {
-      throw new UsageError("invalid-response", `Invalid ${window.kind} reset timestamp`);
+    if (
+      window.resetsAt !== null &&
+      !Number.isFinite(Date.parse(window.resetsAt))
+    ) {
+      throw new UsageError(
+        "invalid-response",
+        `Invalid ${window.kind} reset timestamp`,
+      );
     }
   }
   return snapshot;
 }
 
-export function selectWindow(snapshot: UsageSnapshot, kind: UsageWindowKind): UsageWindow {
+export function selectWindow(
+  snapshot: UsageSnapshot,
+  kind: UsageWindowKind,
+): UsageWindow {
   const window = snapshot.windows.find((candidate) => candidate.kind === kind);
-  if (!window) throw new UsageError("missing-window", `${snapshot.provider} did not report a ${kind} usage window`);
+  if (!window)
+    throw new UsageError(
+      "missing-window",
+      `${snapshot.provider} did not report a ${kind} usage window`,
+    );
   return window;
 }
 
@@ -72,5 +123,7 @@ export function renderUsage(
   format: "json" | "numeric",
 ): string {
   const window = selectWindow(snapshot, kind);
-  return format === "numeric" ? String(window.usedPercent) : JSON.stringify(snapshot, null, 2);
+  return format === "numeric"
+    ? String(window.usedPercent)
+    : JSON.stringify(snapshot, null, 2);
 }

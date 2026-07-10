@@ -26,7 +26,8 @@ import type { UsageSnapshot } from "./usage.ts";
 import { validateSnapshot } from "./usage.ts";
 
 export function usageFromResponse(message: RpcMessage): CodexUsage {
-  if (message.error) throw new Error(message.error.message ?? "Codex app-server request failed");
+  if (message.error)
+    throw new Error(message.error.message ?? "Codex app-server request failed");
   const limits = message.result?.rateLimits;
   if (!limits) throw new Error("Codex app-server returned no rate limits");
   return {
@@ -46,7 +47,8 @@ export async function readCodexUsage(): Promise<CodexUsage> {
   const reader = child.stdout.getReader();
   const decoder = new TextDecoder();
   let buffered = "";
-  const send = (message: object) => writer.write(`${JSON.stringify(message)}\n`);
+  const send = (message: object) =>
+    writer.write(`${JSON.stringify(message)}\n`);
   send({
     id: 1,
     method: "initialize",
@@ -77,7 +79,9 @@ export async function readCodexUsage(): Promise<CodexUsage> {
       }
     }
     const stderr = await new Response(child.stderr).text();
-    throw new Error(`Codex app-server closed before replying${stderr ? `: ${stderr.trim()}` : ""}`);
+    throw new Error(
+      `Codex app-server closed before replying${stderr ? `: ${stderr.trim()}` : ""}`,
+    );
   } finally {
     child.kill();
     writer.end();
@@ -93,12 +97,16 @@ export function codexSnapshotFromResponse(
   const toWindow = (
     kind: "session" | "weekly",
     window: RateLimitWindow | null,
-  ) => window && ({
-    kind,
-    usedPercent: window.usedPercent,
-    durationMinutes: window.windowDurationMins,
-    resetsAt: window.resetsAt === null ? null : new Date(window.resetsAt * 1000).toISOString(),
-  });
+  ) =>
+    window && {
+      kind,
+      usedPercent: window.usedPercent,
+      durationMinutes: window.windowDurationMins,
+      resetsAt:
+        window.resetsAt === null
+          ? null
+          : new Date(window.resetsAt * 1000).toISOString(),
+    };
   return validateSnapshot({
     schemaVersion: 1,
     provider: "codex",
@@ -127,15 +135,19 @@ export function codexSnapshotFromResponse(
 export async function readCodexUsageSnapshot(): Promise<UsageSnapshot> {
   const requestedAt = new Date().toISOString();
   const child = Bun.spawn(["codex", "app-server", "--stdio"], {
-    stdin: "pipe", stdout: "pipe", stderr: "pipe",
+    stdin: "pipe",
+    stdout: "pipe",
+    stderr: "pipe",
   });
   const writer = child.stdin;
   const reader = child.stdout.getReader();
   const decoder = new TextDecoder();
   let buffered = "";
-  const send = (message: object) => writer.write(`${JSON.stringify(message)}\n`);
+  const send = (message: object) =>
+    writer.write(`${JSON.stringify(message)}\n`);
   send({
-    id: 1, method: "initialize",
+    id: 1,
+    method: "initialize",
     params: {
       clientInfo: { name: "subbench", version: "0.1.0" },
       capabilities: { experimentalApi: true },
@@ -156,7 +168,11 @@ export async function readCodexUsageSnapshot(): Promise<UsageSnapshot> {
             send({ method: "initialized", params: {} });
             send({ id: 2, method: "account/rateLimits/read", params: null });
           } else if (message.id === 2) {
-            return codexSnapshotFromResponse(message, requestedAt, new Date().toISOString());
+            return codexSnapshotFromResponse(
+              message,
+              requestedAt,
+              new Date().toISOString(),
+            );
           }
         }
         newline = buffered.indexOf("\n");

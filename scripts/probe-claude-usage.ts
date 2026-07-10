@@ -7,7 +7,10 @@
 // confirm auth (the anthropic-beta header) and response shape against the real
 // Max login.
 
-import { readClaudeCredential, readClaudeUsageSnapshot } from "../packages/cli/src/claude-usage.ts";
+import {
+  readClaudeCredential,
+  readClaudeUsageSnapshot,
+} from "../packages/cli/src/claude-usage.ts";
 import { UsageError } from "../packages/cli/src/usage.ts";
 
 async function main(): Promise<void> {
@@ -16,9 +19,11 @@ async function main(): Promise<void> {
   console.log(`  subscriptionType: ${credential.subscriptionType ?? "(none)"}`);
   console.log(`  has refreshToken: ${credential.refreshToken !== null}`);
   console.log(
-    `  expiresAt: ${credential.expiresAt
-      ? new Date(credential.expiresAt).toISOString()
-      : "(none)"}`,
+    `  expiresAt: ${
+      credential.expiresAt
+        ? new Date(credential.expiresAt).toISOString()
+        : "(none)"
+    }`,
   );
 
   const snapshot = await readClaudeUsageSnapshot();
@@ -42,7 +47,9 @@ main().catch((error) => {
   if (error instanceof UsageError) {
     console.error(`Probe failed (${error.category}): ${error.message}`);
   } else {
-    console.error(`Probe failed: ${error instanceof Error ? error.message : String(error)}`);
+    console.error(
+      `Probe failed: ${error instanceof Error ? error.message : String(error)}`,
+    );
   }
   process.exitCode = 1;
 });

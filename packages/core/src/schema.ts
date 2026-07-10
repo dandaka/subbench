@@ -30,13 +30,15 @@ CREATE TABLE IF NOT EXISTS task_costs (
   benchmark_source_id INTEGER NOT NULL REFERENCES benchmark_sources(id),
   provider_id INTEGER NOT NULL REFERENCES providers(id),
   model TEXT NOT NULL, model_version TEXT NOT NULL DEFAULT '',
+  reasoning_effort TEXT NOT NULL DEFAULT '', configuration_json TEXT NOT NULL DEFAULT '{}',
+  snapshot_sha256 TEXT,
   pass_at_1 REAL NOT NULL CHECK(pass_at_1 > 0 AND pass_at_1 <= 1),
   avg_cost_usd REAL NOT NULL CHECK(avg_cost_usd > 0),
   avg_output_tokens REAL CHECK(avg_output_tokens >= 0),
   avg_steps REAL CHECK(avg_steps >= 0),
   sample_size INTEGER NOT NULL CHECK(sample_size > 0),
   artifact_sha256 TEXT,
-  UNIQUE(benchmark_source_id, provider_id, model, model_version)
+  UNIQUE(benchmark_source_id, provider_id, model, model_version, reasoning_effort, configuration_json)
 );
 CREATE TABLE IF NOT EXISTS task_manifests (
   id INTEGER PRIMARY KEY,
@@ -158,23 +160,75 @@ CREATE INDEX IF NOT EXISTS task_costs_model_idx ON task_costs(provider_id, model
 
 // Columns added after the v1 schema shipped. Applied idempotently to existing databases:
 // SQLite ADD COLUMN is a no-op-safe forward migration (we swallow "duplicate column").
-const migrations: Array<{ table: string; column: string; definition: string }> = [
-  { table: "task_costs", column: "artifact_sha256", definition: "TEXT" },
-  { table: "subscription_measurements", column: "task_cost_ref", definition: "INTEGER REFERENCES task_costs(id)" },
-  { table: "subscription_measurements", column: "task_manifest_ref", definition: "INTEGER REFERENCES task_manifests(id)" },
-  { table: "subscription_measurements", column: "economics_gap", definition: "TEXT" },
-  { table: "subscription_measurements", column: "quota_window_days", definition: "INTEGER" },
-  { table: "subscription_measurements", column: "isolation_confirmed_at", definition: "TEXT" },
-  { table: "subscription_measurements", column: "isolation_confirmed_by", definition: "TEXT" },
-  { table: "subscription_measurements", column: "environment_id", definition: "TEXT" },
-  { table: "subscription_measurements", column: "publishable", definition: "INTEGER NOT NULL DEFAULT 1" },
-  { table: "runs", column: "evidence_kind", definition: "TEXT NOT NULL DEFAULT 'manual'" },
-  { table: "runs", column: "isolation_confirmed_at", definition: "TEXT" },
-  { table: "runs", column: "isolation_confirmed_by", definition: "TEXT" },
-  { table: "runs", column: "isolation_checklist_version", definition: "TEXT" },
-];
+const migrations: Array<{ table: string; column: string; definition: string }> =
+  [
+    {
+      table: "task_costs",
+      column: "reasoning_effort",
+      definition: "TEXT NOT NULL DEFAULT ''",
+    },
+    {
+      table: "task_costs",
+      column: "configuration_json",
+      definition: "TEXT NOT NULL DEFAULT '{}'",
+    },
+    { table: "task_costs", column: "snapshot_sha256", definition: "TEXT" },
+    { table: "task_costs", column: "artifact_sha256", definition: "TEXT" },
+    {
+      table: "subscription_measurements",
+      column: "task_cost_ref",
+      definition: "INTEGER REFERENCES task_costs(id)",
+    },
+    {
+      table: "subscription_measurements",
+      column: "task_manifest_ref",
+      definition: "INTEGER REFERENCES task_manifests(id)",
+    },
+    {
+      table: "subscription_measurements",
+      column: "economics_gap",
+      definition: "TEXT",
+    },
+    {
+      table: "subscription_measurements",
+      column: "quota_window_days",
+      definition: "INTEGER",
+    },
+    {
+      table: "subscription_measurements",
+      column: "isolation_confirmed_at",
+      definition: "TEXT",
+    },
+    {
+      table: "subscription_measurements",
+      column: "isolation_confirmed_by",
+      definition: "TEXT",
+    },
+    {
+      table: "subscription_measurements",
+      column: "environment_id",
+      definition: "TEXT",
+    },
+    {
+      table: "subscription_measurements",
+      column: "publishable",
+      definition: "INTEGER NOT NULL DEFAULT 1",
+    },
+    {
+      table: "runs",
+      column: "evidence_kind",
+      definition: "TEXT NOT NULL DEFAULT 'manual'",
+    },
+    { table: "runs", column: "isolation_confirmed_at", definition: "TEXT" },
+    { table: "runs", column: "isolation_confirmed_by", definition: "TEXT" },
+    {
+      table: "runs",
+      column: "isolation_checklist_version",
+      definition: "TEXT",
+    },
+  ];
 
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 export const PROTOCOL_VERSION = "v1-2026-07-10";
 export const METHODOLOGY_VERSION = "tier-a-2026-07-10";
 

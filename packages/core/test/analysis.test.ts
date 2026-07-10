@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { calculate } from "../src/index.ts";
 import type { CalibrationRun } from "../src/index.ts";
+import { calculate } from "../src/index.ts";
 
 function run(delta: number, success = 1, promotion = 0): CalibrationRun {
   return {
@@ -25,25 +25,40 @@ const base = {
 
 describe("v1 analysis", () => {
   test("implements the window-normalized native formula", () => {
-    const result = calculate({ ...base, runs: [run(8), run(9), run(10, 0), run(9), run(8)] });
+    const result = calculate({
+      ...base,
+      runs: [run(8), run(9), run(10, 0), run(9), run(8)],
+    });
     // conversion factor = median(delta/api) = median([4,4.5,5,4.5,4]) = 4.5
     expect(result.conversionFactor).toBe(4.5);
     // window price = 20 * 7 / 30
-    expect(result.windowPrice).toBeCloseTo(20 * 7 / 30);
+    expect(result.windowPrice).toBeCloseTo((20 * 7) / 30);
     // native success rate = 4/5
     expect(result.nativeSuccessRate).toBeCloseTo(0.8);
     // primary uses all drain, including the failure: 100 * 4 / (8+9+10+9+8)
-    expect(result.nativeTasksPerWindow).toBeCloseTo(100 * 4 / 44);
+    expect(result.nativeTasksPerWindow).toBeCloseTo((100 * 4) / 44);
     // SVI = nativeTasksPerWindow / windowPrice
-    expect(result.subscriptionValueIndex).toBeCloseTo((100 * 4 / 44) / (20 * 7 / 30));
+    expect(result.subscriptionValueIndex).toBeCloseTo(
+      (100 * 4) / 44 / ((20 * 7) / 30),
+    );
     // secondary metric still uses published pass@1
-    expect(result.benchmarkEquivalentTasksPerWindow).toBeCloseTo(100 / 9 * 0.6);
+    expect(result.benchmarkEquivalentTasksPerWindow).toBeCloseTo(
+      (100 / 9) * 0.6,
+    );
   });
 
   test("expensive failures lower the total-drain primary estimate", () => {
-    const cheapFailure = calculate({ ...base, runs: [run(8), run(8), run(8), run(8), run(1, 0)] });
-    const expensiveFailure = calculate({ ...base, runs: [run(8), run(8), run(8), run(8), run(24, 0)] });
-    expect(expensiveFailure.nativeTasksPerWindow).toBeLessThan(cheapFailure.nativeTasksPerWindow);
+    const cheapFailure = calculate({
+      ...base,
+      runs: [run(8), run(8), run(8), run(8), run(1, 0)],
+    });
+    const expensiveFailure = calculate({
+      ...base,
+      runs: [run(8), run(8), run(8), run(8), run(24, 0)],
+    });
+    expect(expensiveFailure.nativeTasksPerWindow).toBeLessThan(
+      cheapFailure.nativeTasksPerWindow,
+    );
     expect(expensiveFailure.totalWeightedDrain).toBe(56);
   });
 
@@ -64,8 +79,9 @@ describe("v1 analysis", () => {
   });
 
   test("requires a named quota window", () => {
-    expect(() => calculate({ ...base, quotaWindowDays: 0, runs: [run(8)] }))
-      .toThrow("quotaWindowDays");
+    expect(() =>
+      calculate({ ...base, quotaWindowDays: 0, runs: [run(8)] }),
+    ).toThrow("quotaWindowDays");
   });
 
   test("omits API comparison when no compatible published economics", () => {
@@ -85,6 +101,8 @@ describe("v1 analysis", () => {
 
   test("supports promotions only as separate cells", () => {
     expect(calculate({ ...base, runs: [run(1, 1, 1)] }).medianDrain).toBe(1);
-    expect(() => calculate({ ...base, runs: [run(8), run(1, 1, 1)] })).toThrow("separately");
+    expect(() => calculate({ ...base, runs: [run(8), run(1, 1, 1)] })).toThrow(
+      "separately",
+    );
   });
 });

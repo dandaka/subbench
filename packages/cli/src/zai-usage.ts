@@ -13,8 +13,12 @@ function records(payload: JsonObject): JsonObject[] {
     (payload.data as JsonObject | undefined)?.list,
     payload.limits,
   ];
-  for (const value of candidates) if (Array.isArray(value)) return value as JsonObject[];
-  throw new UsageError("invalid-response", "Z.ai response contained no quota records");
+  for (const value of candidates)
+    if (Array.isArray(value)) return value as JsonObject[];
+  throw new UsageError(
+    "invalid-response",
+    "Z.ai response contained no quota records",
+  );
 }
 
 function kind(type: unknown, unit: unknown): UsageWindowKind {
@@ -33,7 +37,8 @@ function timestamp(value: unknown): string | null {
     return new Date(millis).toISOString();
   }
   const parsed = Date.parse(String(value));
-  if (!Number.isFinite(parsed)) throw new UsageError("invalid-response", "Invalid Z.ai reset timestamp");
+  if (!Number.isFinite(parsed))
+    throw new UsageError("invalid-response", "Invalid Z.ai reset timestamp");
   return new Date(parsed).toISOString();
 }
 
@@ -44,14 +49,22 @@ function percentage(row: JsonObject): number {
   const current = row.currentValue ?? row.current ?? row.used;
   const limit = row.limitValue ?? row.limit ?? row.total;
   if (typeof current === "number" && typeof limit === "number" && limit > 0) {
-    return current / limit * 100;
+    return (current / limit) * 100;
   }
-  throw new UsageError("invalid-response", "Z.ai quota record contained no utilization");
+  throw new UsageError(
+    "invalid-response",
+    "Z.ai quota record contained no utilization",
+  );
 }
 
 export function zaiSnapshotFromResponse(
   payload: JsonObject,
-  metadata: { requestedAt?: string; respondedAt?: string; endpoint?: string; idHash?: string | null } = {},
+  metadata: {
+    requestedAt?: string;
+    respondedAt?: string;
+    endpoint?: string;
+    idHash?: string | null;
+  } = {},
 ): UsageSnapshot {
   const respondedAt = metadata.respondedAt ?? new Date().toISOString();
   const data = payload.data as JsonObject | undefined;
@@ -72,11 +85,15 @@ export function zaiSnapshotFromResponse(
     account: { plan, idHash: metadata.idHash ?? null },
     capturedAt: respondedAt,
     collector: {
-      name: "zai-quota-api", version: "0.1.0", authority: "server",
-      precision: "decimal", cached: false,
+      name: "zai-quota-api",
+      version: "0.1.0",
+      authority: "server",
+      precision: "decimal",
+      cached: false,
     },
     source: {
-      endpoint: metadata.endpoint ?? "https://api.z.ai/api/monitor/usage/quota/limit",
+      endpoint:
+        metadata.endpoint ?? "https://api.z.ai/api/monitor/usage/quota/limit",
       requestedAt: metadata.requestedAt ?? respondedAt,
       respondedAt,
     },
@@ -87,28 +104,51 @@ export function zaiSnapshotFromResponse(
 
 export async function readZaiUsageSnapshot(): Promise<UsageSnapshot> {
   const token = process.env.ZAI_AUTH_TOKEN ?? process.env.ANTHROPIC_AUTH_TOKEN;
-  if (!token) throw new UsageError("authentication", "Set ZAI_AUTH_TOKEN or ANTHROPIC_AUTH_TOKEN");
-  const configured = process.env.ZAI_BASE_URL ?? process.env.ANTHROPIC_BASE_URL ?? "https://api.z.ai";
+  if (!token)
+    throw new UsageError(
+      "authentication",
+      "Set ZAI_AUTH_TOKEN or ANTHROPIC_AUTH_TOKEN",
+    );
+  const configured =
+    process.env.ZAI_BASE_URL ??
+    process.env.ANTHROPIC_BASE_URL ??
+    "https://api.z.ai";
   const base = new URL(configured);
   if (!HOSTS.has(base.hostname) || base.protocol !== "https:") {
-    throw new UsageError("authentication", `Z.ai host is not allowed: ${base.hostname}`);
+    throw new UsageError(
+      "authentication",
+      `Z.ai host is not allowed: ${base.hostname}`,
+    );
   }
   const endpoint = new URL("/api/monitor/usage/quota/limit", base).toString();
   const requestedAt = new Date().toISOString();
   let response: Response;
   try {
-    response = await fetch(endpoint, { headers: { Authorization: `Bearer ${token}` } });
+    response = await fetch(endpoint, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
   } catch {
     throw new UsageError("network", "Could not reach the Z.ai quota endpoint");
   }
   if (response.status === 401 || response.status === 403) {
-    throw new UsageError("authentication", "Z.ai rejected the configured credential");
+    throw new UsageError(
+      "authentication",
+      "Z.ai rejected the configured credential",
+    );
   }
-  if (response.status === 429) throw new UsageError("rate-limited", "Z.ai quota endpoint is rate limited");
-  if (!response.ok) throw new UsageError("network", `Z.ai quota endpoint returned HTTP ${response.status}`);
-  const payload = await response.json() as JsonObject;
+  if (response.status === 429)
+    throw new UsageError("rate-limited", "Z.ai quota endpoint is rate limited");
+  if (!response.ok)
+    throw new UsageError(
+      "network",
+      `Z.ai quota endpoint returned HTTP ${response.status}`,
+    );
+  const payload = (await response.json()) as JsonObject;
   const idHash = createHash("sha256").update(token).digest("hex").slice(0, 16);
   return zaiSnapshotFromResponse(payload, {
-    endpoint, requestedAt, respondedAt: new Date().toISOString(), idHash,
+    endpoint,
+    requestedAt,
+    respondedAt: new Date().toISOString(),
+    idHash,
   });
 }

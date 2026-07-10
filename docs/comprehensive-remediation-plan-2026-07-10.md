@@ -27,14 +27,14 @@ fixed calibration set; Tier B is required for claims that generalize beyond that
 
 ### Next repository work
 
-- [ ] Replace the current selection output with a checked, immutable DeepSWE lock manifest
-  (source retrieval metadata, artifact hashes, commit, verifier, image digest, order, and
-  abort rule) and make runners verify it before execution.
-- [ ] Complete effort/config-aware DeepSWE importer and locked reproducibility command.
-- [ ] Expand report/CSV/JSON disclosures and comparison compatibility gates; add the
-  cross-source sanity artifact and redaction/freshness checks.
-- [ ] Add real lint/formatter tooling, generated-file freshness checks, and broader Tier B
-  platform coverage.
+- [x] Implemented checked DeepSWE lock generation/validation and runner enforcement. The
+  maintainer must still supply the actual frozen decision inputs before a lock can be made.
+- [x] Implemented deterministic effort/config-aware importer with explicit economics gaps
+  and no cross-model fallback.
+- [x] Expanded JSON/CSV/Markdown disclosures, compatibility gates, a cross-source sanity
+  check artifact, and redaction/freshness checks.
+- [x] Added Biome lint/format checks and generated-artifact freshness checks to `bun run
+  check` and Tier A CI. Tier B platform coverage remains an external Tier B gate.
 
 ### External gates — intentionally not marked complete
 
@@ -109,18 +109,18 @@ them a general provider ranking or generalize them to developer work.
 
 Complete these steps before collecting another paid calibration run.
 
-- [ ] Mark every current example and result as template, synthetic, exploratory, or
+- [x] Mark every current example and result as template, synthetic, exploratory, or
   non-publishable. Do not present any current SVI or API multiple as empirical evidence.
-- [ ] Copy `claude-max.db` and `zai-lite.db` to a dated, read-only raw-data archive before
+- [x] Copy `claude-max.db` and `zai-lite.db` to a dated, read-only raw-data archive before
   attempting migration. Record file hashes.
-- [ ] Locate the `openai-plus.db` named in `openai-plus-calibration-status.md`, or update the
+- [x] Locate the `openai-plus.db` named in `openai-plus-calibration-status.md`, or update the
   status document to state that the database is missing and the two runs are not currently
   reproducible.
-- [ ] Classify all existing subscription runs as non-publishable because isolation was not
+- [x] Classify all existing subscription runs as non-publishable because isolation was not
   recorded per run. Retain them only for collector and pipeline debugging.
-- [ ] Disable provider-ranking language in README/report output until the comparison release
+- [x] Disable provider-ranking language in README/report output until the comparison release
   gate passes.
-- [ ] Add a protocol version and methodology version to every future measurement.
+- [x] Add a protocol version and methodology version to every future measurement.
 
 Exit criterion: no tracked document, CLI output, or report can accidentally make a provider
 comparison from current data.

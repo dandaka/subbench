@@ -13,7 +13,8 @@ import {
 
 const directories: string[] = [];
 afterEach(() => {
-  for (const directory of directories.splice(0)) rmSync(directory, { recursive: true });
+  for (const directory of directories.splice(0))
+    rmSync(directory, { recursive: true });
 });
 
 describe("database pipeline", () => {
@@ -26,7 +27,9 @@ describe("database pipeline", () => {
     try {
       const counts = loadBundle(db, resolve("examples/synthetic.json"));
       expect(counts.runs).toBe(5);
-      expect(validateDatabase(db).some((issue) => issue.includes("usage snapshot"))).toBe(true);
+      expect(
+        validateDatabase(db).some((issue) => issue.includes("usage snapshot")),
+      ).toBe(true);
       const records = analyzeDatabase(db);
       expect(records).toHaveLength(1);
       expect(records[0]?.provider).toBe("example-ai");

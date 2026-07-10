@@ -15,10 +15,15 @@
     "probe:claude": "bun run scripts/probe-claude-usage.ts",
     "test": "bun test",
     "typecheck": "tsc --build",
-    "check": "bun run typecheck && bun test"
+    "lint": "biome check .",
+    "format:check": "biome ci .",
+    "freshness": "bun run scripts/check-generated.ts",
+    "redaction": "bun run scripts/check-redaction.ts",
+    "check": "bun run typecheck && bun run lint && bun run format:check && bun run freshness && bun run redaction && bun test"
   },
   "devDependencies": {
     "@types/bun": "1.3.14",
-    "typescript": "7.0.2"
+    "typescript": "7.0.2",
+    "@biomejs/biome": "2.4.5"
   }
 }

@@ -4,11 +4,11 @@
 // OAuth usage approach used by ClaudeBar (github.com/tddworks/ClaudeBar, MIT).
 // No source text is copied; endpoints, headers, and field names are facts.
 
+import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { execFileSync } from "node:child_process";
 import type { UsageSnapshot, UsageWindow } from "./usage.ts";
 import { UsageError, validateSnapshot } from "./usage.ts";
 
@@ -36,17 +36,18 @@ function parseCredentialBlob(raw: string): ClaudeCredential | null {
   }
   const oauth = json.claudeAiOauth as JsonObject | undefined;
   if (!oauth) return null;
-  const accessToken = typeof oauth.accessToken === "string"
-    ? oauth.accessToken.trim()
-    : "";
+  const accessToken =
+    typeof oauth.accessToken === "string" ? oauth.accessToken.trim() : "";
   if (!accessToken) return null;
   return {
     accessToken,
-    refreshToken: typeof oauth.refreshToken === "string" ? oauth.refreshToken : null,
+    refreshToken:
+      typeof oauth.refreshToken === "string" ? oauth.refreshToken : null,
     expiresAt: typeof oauth.expiresAt === "number" ? oauth.expiresAt : null,
-    subscriptionType: typeof oauth.subscriptionType === "string"
-      ? oauth.subscriptionType
-      : null,
+    subscriptionType:
+      typeof oauth.subscriptionType === "string"
+        ? oauth.subscriptionType
+        : null,
   };
 }
 
@@ -79,7 +80,12 @@ export function readClaudeCredential(): ClaudeCredential {
 
   const envToken = process.env.CLAUDE_CODE_OAUTH_TOKEN?.trim();
   if (envToken) {
-    return { accessToken: envToken, refreshToken: null, expiresAt: null, subscriptionType: null };
+    return {
+      accessToken: envToken,
+      refreshToken: null,
+      expiresAt: null,
+      subscriptionType: null,
+    };
   }
 
   throw new UsageError(
@@ -94,13 +100,17 @@ function utilizationWindow(
 ): UsageWindow | null {
   if (!record) return null;
   const utilization = record.utilization;
-  if (typeof utilization !== "number" || !Number.isFinite(utilization)) return null;
+  if (typeof utilization !== "number" || !Number.isFinite(utilization))
+    return null;
   const resetsAtRaw = record.resets_at;
   let resetsAt: string | null = null;
   if (typeof resetsAtRaw === "string" && resetsAtRaw !== "") {
     const parsed = Date.parse(resetsAtRaw);
     if (!Number.isFinite(parsed)) {
-      throw new UsageError("invalid-response", `Invalid Claude ${kind} reset timestamp`);
+      throw new UsageError(
+        "invalid-response",
+        `Invalid Claude ${kind} reset timestamp`,
+      );
     }
     resetsAt = new Date(parsed).toISOString();
   }
@@ -120,9 +130,15 @@ export function claudeSnapshotFromResponse(
   const respondedAt = metadata.respondedAt ?? new Date().toISOString();
   const windows: UsageWindow[] = [];
 
-  const session = utilizationWindow(payload.five_hour as JsonObject | undefined, "session");
+  const session = utilizationWindow(
+    payload.five_hour as JsonObject | undefined,
+    "session",
+  );
   if (session) windows.push(session);
-  const weekly = utilizationWindow(payload.seven_day as JsonObject | undefined, "weekly");
+  const weekly = utilizationWindow(
+    payload.seven_day as JsonObject | undefined,
+    "weekly",
+  );
   if (weekly) windows.push(weekly);
 
   return validateSnapshot({
@@ -153,7 +169,10 @@ export function claudeSnapshotFromResponse(
 // Parse an HTTP Retry-After value into seconds. Rejects a literal 0 (the
 // endpoint has been observed returning `Retry-After: 0` while still 429ing);
 // callers apply their own fallback. Returns null for missing/malformed/past.
-export function parseRetryAfterSeconds(value: string | null, now = Date.now()): number | null {
+export function parseRetryAfterSeconds(
+  value: string | null,
+  now = Date.now(),
+): number | null {
   if (value == null) return null;
   const trimmed = value.trim();
   if (trimmed === "") return null;
@@ -180,19 +199,34 @@ export async function readClaudeUsageSnapshot(): Promise<UsageSnapshot> {
       },
     });
   } catch {
-    throw new UsageError("network", "Could not reach the Claude usage endpoint");
+    throw new UsageError(
+      "network",
+      "Could not reach the Claude usage endpoint",
+    );
   }
   if (response.status === 401 || response.status === 403) {
-    throw new UsageError("authentication", "Claude rejected the OAuth credential");
+    throw new UsageError(
+      "authentication",
+      "Claude rejected the OAuth credential",
+    );
   }
   if (response.status === 429) {
-    throw new UsageError("rate-limited", "Claude usage endpoint is rate limited");
+    throw new UsageError(
+      "rate-limited",
+      "Claude usage endpoint is rate limited",
+    );
   }
   if (!response.ok) {
-    throw new UsageError("network", `Claude usage endpoint returned HTTP ${response.status}`);
+    throw new UsageError(
+      "network",
+      `Claude usage endpoint returned HTTP ${response.status}`,
+    );
   }
-  const payload = await response.json() as JsonObject;
-  const idHash = createHash("sha256").update(credential.accessToken).digest("hex").slice(0, 16);
+  const payload = (await response.json()) as JsonObject;
+  const idHash = createHash("sha256")
+    .update(credential.accessToken)
+    .digest("hex")
+    .slice(0, 16);
   return claudeSnapshotFromResponse(payload, {
     subscriptionType: credential.subscriptionType,
     idHash,

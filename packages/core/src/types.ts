@@ -80,7 +80,8 @@ export interface Result {
   medianTaskSeconds: number;
 }
 
-export interface ReportRecord extends Record<string, string | number | boolean | null> {
+export interface ReportRecord
+  extends Record<string, string | number | boolean | null> {
   provider: string;
   plan: string;
   model: string;
@@ -106,5 +107,9 @@ export interface ReportRecord extends Record<string, string | number | boolean |
   task_manifest: string | null;
   target_population: string | null;
   estimand_version: string;
+  protocol_version: string;
+  methodology_version: string;
+  comparison_compatible: boolean;
+  conditions: string | null;
   window: string;
 }

@@ -1,9 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { UsageError } from "../src/usage.ts";
 import {
   claudeSnapshotFromResponse,
   parseRetryAfterSeconds,
 } from "../src/claude-usage.ts";
+import { UsageError } from "../src/usage.ts";
 
 describe("Claude usage snapshot", () => {
   test("maps five_hour to session and seven_day to weekly", () => {
@@ -25,7 +25,11 @@ describe("Claude usage snapshot", () => {
     expect(snapshot.collector.authority).toBe("server");
     expect(snapshot.collector.precision).toBe("decimal");
     expect(snapshot.windows).toEqual([
-      { kind: "session", usedPercent: 79, resetsAt: "2026-07-10T04:00:00.000Z" },
+      {
+        kind: "session",
+        usedPercent: 79,
+        resetsAt: "2026-07-10T04:00:00.000Z",
+      },
       { kind: "weekly", usedPercent: 66, resetsAt: "2026-07-14T10:41:12.000Z" },
     ]);
   });
@@ -44,14 +48,21 @@ describe("Claude usage snapshot", () => {
       five_hour: { utilization: 10 },
       seven_day: { utilization: 20, resets_at: "2026-07-14T10:41:12.000Z" },
     });
-    expect(snapshot.windows[0]).toEqual({ kind: "session", usedPercent: 10, resetsAt: null });
+    expect(snapshot.windows[0]).toEqual({
+      kind: "session",
+      usedPercent: 10,
+      resetsAt: null,
+    });
   });
 
   test("ignores model-scoped and extra-usage fields (kept only in raw)", () => {
     const payload = {
       five_hour: { utilization: 10, resets_at: "2026-07-10T04:00:00.000Z" },
       seven_day: { utilization: 20, resets_at: "2026-07-14T10:41:12.000Z" },
-      seven_day_opus: { utilization: 40, resets_at: "2026-07-14T10:41:12.000Z" },
+      seven_day_opus: {
+        utilization: 40,
+        resets_at: "2026-07-14T10:41:12.000Z",
+      },
       extra_usage: { is_enabled: true, used_credits: 5 },
     };
     const snapshot = claudeSnapshotFromResponse(payload);
@@ -64,12 +75,14 @@ describe("Claude usage snapshot", () => {
       claudeSnapshotFromResponse({
         five_hour: { utilization: 10, resets_at: "not-a-date" },
         seven_day: { utilization: 20 },
-      })
+      }),
     ).toThrow(UsageError);
   });
 
   test("rejects a payload with no recognizable windows", () => {
-    expect(() => claudeSnapshotFromResponse({ limits: [] })).toThrow(UsageError);
+    expect(() => claudeSnapshotFromResponse({ limits: [] })).toThrow(
+      UsageError,
+    );
   });
 });
 
@@ -95,6 +108,8 @@ describe("parseRetryAfterSeconds", () => {
 
   test("returns null for a past HTTP-date", () => {
     const now = Date.parse("2026-07-10T01:00:00.000Z");
-    expect(parseRetryAfterSeconds("Fri, 10 Jul 2026 00:00:00 GMT", now)).toBeNull();
+    expect(
+      parseRetryAfterSeconds("Fri, 10 Jul 2026 00:00:00 GMT", now),
+    ).toBeNull();
   });
 });
