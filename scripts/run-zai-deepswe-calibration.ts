@@ -5,17 +5,20 @@ import { resolve } from "node:path";
 import { selectWindow } from "../packages/cli/src/usage.ts";
 import { readZaiUsageSnapshot } from "../packages/cli/src/zai-usage.ts";
 import {
-  initializeDatabase,
   insertRun,
   insertUsageSnapshots,
-  loadBundle,
   openDatabase,
 } from "../packages/core/src/index.ts";
-import { type DeepSweLock, readAndVerifyLock } from "./deepswe-lock.ts";
+import {
+  type DeepSweLock,
+  readAndVerifyLock,
+  readLockedSelection,
+} from "./deepswe-lock.ts";
 
 interface SelectedTask {
   id: string;
-  avg_cost_usd: number;
+  base_commit_hash: string;
+  model_costs?: Record<string, number>;
 }
 
 interface Selection {
@@ -33,10 +36,10 @@ const root = resolve(import.meta.dir, "..");
 const state = resolve(root, ".subbench");
 const benchmark = resolve(state, "deep-swe");
 const jobs = resolve(state, "jobs");
-const database = resolve(root, "zai-lite.db");
-const bundle = resolve(root, "examples/zai-lite-deepswe-v1.1.json");
-const selectionPath = resolve(root, "data/deepswe-v1.1-calibration-tasks.json");
-const selection = JSON.parse(readFileSync(selectionPath, "utf8")) as Selection;
+const database = resolve(
+  root,
+  "data/frozen-studies/deepswe-v1.1-2026-07-10/zai-coding-lite.db",
+);
 const model = "glm-5.2";
 const claudeVersion = "2.1.187";
 
@@ -112,15 +115,8 @@ async function prepare(lock: DeepSweLock): Promise<void> {
     throw new Error(
       `failed to checkout locked DeepSWE commit ${lock.deepswe_commit}`,
     );
-  if (!existsSync(database)) {
-    initializeDatabase(database);
-    const db = openDatabase(database);
-    try {
-      loadBundle(db, bundle);
-    } finally {
-      db.close();
-    }
-  }
+  if (!existsSync(database))
+    throw new Error(`fresh locked study is missing: ${database}`);
 }
 
 function nextTask(): SelectedTask {
@@ -180,6 +176,7 @@ const lock = readAndVerifyLock(
   root,
   option("--lock") ?? "data/deepswe-v1.1.lock.json",
 );
+const selection = readLockedSelection<Selection>(root, lock);
 await prepare(lock);
 const environmentId = `deepswe-v1.1-pier-0.3.0-docker-claude-code-${claudeVersion}`;
 stampIsolation(database, isolationOperator, environmentId);
@@ -263,7 +260,13 @@ try {
     ended_at: endedAt.toISOString(),
     pre_usage: preWeekly.usedPercent,
     post_usage: postWeekly.usedPercent,
-    api_equivalent_usd: task.avg_cost_usd,
+    api_equivalent_usd:
+      task.model_costs?.['glm-5-2|max|"mini_swe_agent_glm_5_2_max"'] ??
+      (() => {
+        throw new Error(
+          `economics gap: no locked per-task cost for ${task.id}`,
+        );
+      })(),
     success: success ? 1 : 0,
     retries: 0,
     limit_event: 0,

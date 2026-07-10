@@ -121,3 +121,23 @@ export function readAndVerifyLock(root: string, path: string): DeepSweLock {
     );
   return lock;
 }
+
+/** Read the selector output only after proving it is the lock's exact payload. */
+export function readLockedSelection<
+  T extends { tasks?: Array<{ id: string; base_commit_hash: string }> },
+>(root: string, lock: DeepSweLock): T {
+  const selection = JSON.parse(
+    readFileSync(resolve(root, lock.selection.output_path), "utf8"),
+  ) as T;
+  const tasks = selection.tasks;
+  if (!tasks || tasks.length !== lock.tasks.length)
+    throw new Error("locked selection has an unexpected task count");
+  for (const task of lock.tasks) {
+    const selected = tasks.find((candidate) => candidate.id === task.id);
+    if (!selected || selected.base_commit_hash !== task.base_commit)
+      throw new Error(
+        `locked selection does not match task provenance: ${task.id}`,
+      );
+  }
+  return selection;
+}
