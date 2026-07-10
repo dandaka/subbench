@@ -6,9 +6,16 @@ Key documents in `docs/` (read the relevant one before working):
 - [docs/protocol.md](docs/protocol.md) — measurement protocol. **Read before running or modifying any benchmark.** Section 2 carries a mandatory operator isolation check that must be confirmed and recorded before every run, or the run is invalid.
 - [docs/methodology.md](docs/methodology.md) — methodology
 - [docs/calibration-tasks.md](docs/calibration-tasks.md) — calibration task set
-- [docs/task-selection-plan.md](docs/task-selection-plan.md) — task selection plan
 - [docs/running-claude-max-calibration.md](docs/running-claude-max-calibration.md) — operator runbook: how to run a Claude Max calibration test
-- Research: `docs/research.md`, `docs/research-*.md`, `docs/existing-research-landscape.md`, `docs/*-calibration-*.md`
+- [docs/research.md](docs/research.md) — supporting research and external context
+- [docs/log.md](docs/log.md) — concise record of important project changes
+
+# Project log
+
+Record every important, durable project change in [docs/log.md](docs/log.md) in the
+same change set. Include the date, a short summary, and the affected artifacts or
+decisions. Do not log routine formatting, dependency-only updates, or transient run
+output. Never use the log as a substitute for required measurement evidence.
 
 # Benchmarking protocol
 

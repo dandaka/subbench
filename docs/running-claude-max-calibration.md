@@ -3,9 +3,9 @@
 Operator runbook for measuring per-task quota drain on the Anthropic Claude Max
 subscription, using Claude Code inside Pier's Docker harness on DeepSWE tasks.
 
-For the design and rationale, see
-[superpowers/specs/2026-07-10-claude-subscription-calibration-design.md](superpowers/specs/2026-07-10-claude-subscription-calibration-design.md).
-For the mandatory measurement rules, see [protocol.md](protocol.md).
+For the mandatory measurement rules, see [protocol.md](protocol.md); the frozen task
+set and provenance are in [calibration-tasks.md](calibration-tasks.md) and
+`data/deepswe-v1.1.lock.json`.
 
 ## What one run does
 
@@ -75,7 +75,7 @@ bun run calibrate:claude
 Or pin a specific task:
 
 ```bash
-bun run calibrate:claude --task fastapi-implicit-head-options
+bun run calibrate:claude --task dasel-html-document-format
 ```
 
 The task list is the DeepSWE calibration selection in

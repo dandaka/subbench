@@ -80,8 +80,10 @@ Those claims may be true for a given workflow, but they are usually not backed b
 
 ## Project Status
 
-V1 is implemented as a Bun workspace monorepo using TypeScript 7. It captures calibration
-runs and validates evidence, but current historical data and examples are non-publishable.
+The calibration pipeline and frozen DeepSWE v1.1 study inputs are in place. No
+subscription comparison has been measured or published: the examples and frozen
+pre-collection bundles are non-publishable until the protocol's evidence and collection
+requirements are met.
 
 ## Quick Start
 
@@ -119,20 +121,14 @@ For an automated usage indicator, replace both explicit usage values with
 after the task. In an interactive terminal, `--post-usage` may be omitted and SubBench
 will prompt after the run.
 
-For the OpenAI Plus/DeepSWE study, regenerate the balanced eight-task selection and run
-the next unmeasured task with:
+For a real DeepSWE study, first inspect and verify the already frozen input lock:
 
 ```bash
-bun run select:tasks
-bun run subbench codex-usage --window weekly --format json
-bun run calibrate:openai
+bun run verify:deepswe-lock
 ```
 
-The calibration runner uses the authenticated Codex CLI through Pier's isolated Docker
-environment, reads the rolling weekly percentage through Codex's app-server protocol,
-grades with DeepSWE's verifier, and records the result in `openai-plus.db`. Runs are
-sequential, and the runner refuses to start at 70% or more five-hour usage so that the
-short window does not bind during a measured task.
+Only then follow the [measurement protocol](docs/protocol.md), including its mandatory
+per-run isolation attestation, before using a provider-specific calibration runner.
 
 ## Monorepo
 
@@ -153,11 +149,12 @@ Run `bun run check` to type-check every workspace with TypeScript 7 and execute 
 ## Docs
 
 - [Goal](docs/goal.md)
-- [Relevant Research](docs/research.md)
-- [ClaudeBar Provider-Usage Research and Implementation Plan](docs/claudebar-provider-research.md)
 - [Methodology](docs/methodology.md)
 - [Measurement Protocol](docs/protocol.md)
-- [OpenAI Plus Calibration Status](docs/openai-plus-calibration-status.md)
+- [Frozen calibration tasks](docs/calibration-tasks.md)
+- [Claude Max runbook](docs/running-claude-max-calibration.md)
+- [Research context](docs/research.md)
+- [Project log](docs/log.md)
 
 ## Initial Scope
 

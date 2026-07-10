@@ -105,14 +105,12 @@ Codex, Z.ai, OpenCode Go, Cursor, Copilot, Gemini, and other coding tools. Its p
 layer demonstrates several practical quota interfaces, including Codex app-server RPC,
 Claude's OAuth usage endpoint, and Z.ai's quota endpoint.
 
-SubBench's study distinguishes server-reported quota data from CLI display parsing and
-local reconstruction, then turns those findings into a provider-neutral implementation
-plan.
+SubBench distinguishes server-reported quota data from CLI display parsing and local
+reconstruction, then retains snapshots as measurement evidence under the protocol.
 
 Sources:
 
 - https://github.com/tddworks/ClaudeBar
-- [ClaudeBar provider research and implementation plan](claudebar-provider-research.md)
 
 ## Gap
 
