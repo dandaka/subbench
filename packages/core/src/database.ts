@@ -410,6 +410,15 @@ export function loadBundle(db: Database, path: string): Record<string, number> {
       let taskCostRef: number | null = null;
       let taskManifestRef: number | null = null;
       if (typeof economicsModel === "string") {
+        const hasExactEconomics =
+          typeof row.task_cost_reasoning_effort === "string" &&
+          "task_cost_configuration" in row;
+        const economicsEffort = hasExactEconomics
+          ? text(row, "task_cost_reasoning_effort")
+          : null;
+        const economicsConfiguration = hasExactEconomics
+          ? JSON.stringify(row.task_cost_configuration)
+          : null;
         const sourceSlug =
           typeof row.task_cost_benchmark_source === "string"
             ? row.task_cost_benchmark_source
@@ -423,16 +432,41 @@ export function loadBundle(db: Database, path: string): Record<string, number> {
         taskCostRef = uniqueIdentifier(
           db,
           sourceId === null
-            ? "SELECT id FROM task_costs WHERE provider_id=? AND model=? AND model_version=?"
-            : "SELECT id FROM task_costs WHERE benchmark_source_id=? AND provider_id=? AND model=? AND model_version=?",
+            ? hasExactEconomics
+              ? "SELECT id FROM task_costs WHERE provider_id=? AND model=? AND model_version=? AND reasoning_effort=? AND configuration_json=?"
+              : "SELECT id FROM task_costs WHERE provider_id=? AND model=? AND model_version=?"
+            : hasExactEconomics
+              ? "SELECT id FROM task_costs WHERE benchmark_source_id=? AND provider_id=? AND model=? AND model_version=? AND reasoning_effort=? AND configuration_json=?"
+              : "SELECT id FROM task_costs WHERE benchmark_source_id=? AND provider_id=? AND model=? AND model_version=?",
           sourceId === null
-            ? [providerId, economicsModel, text(row, "task_cost_model_version")]
-            : [
-                sourceId,
-                providerId,
-                economicsModel,
-                text(row, "task_cost_model_version"),
-              ],
+            ? hasExactEconomics
+              ? [
+                  providerId,
+                  economicsModel,
+                  text(row, "task_cost_model_version"),
+                  economicsEffort!,
+                  economicsConfiguration!,
+                ]
+              : [
+                  providerId,
+                  economicsModel,
+                  text(row, "task_cost_model_version"),
+                ]
+            : hasExactEconomics
+              ? [
+                  sourceId,
+                  providerId,
+                  economicsModel,
+                  text(row, "task_cost_model_version"),
+                  economicsEffort!,
+                  economicsConfiguration!,
+                ]
+              : [
+                  sourceId,
+                  providerId,
+                  economicsModel,
+                  text(row, "task_cost_model_version"),
+                ],
           "task_cost economics binding",
         );
       }
@@ -658,7 +692,8 @@ export function analyze(db: Database, force = false): AnalysisReport {
   const cells = db
     .query<Cell, []>(
       `SELECT sm.*, p.price, p.billing_days, p.slug plan, pr.slug provider,
-      tc.id task_cost_id, tc.avg_cost_usd, tc.pass_at_1,
+      tc.id task_cost_id, tc.avg_cost_usd,
+      CASE WHEN sm.economics_gap IS NULL THEN tc.pass_at_1 ELSE NULL END pass_at_1,
       tm.slug task_manifest, tm.target_population
      FROM subscription_measurements sm
      JOIN plans p ON p.id=sm.plan_id

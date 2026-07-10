@@ -3,7 +3,7 @@
 import { existsSync, readFileSync } from "node:fs";
 
 const tracked = [
-  "data/deepswe-v1.1-calibration-tasks.json",
+  "data/deepswe-v1.1-2026-07-10/selection.json",
   "docs/calibration-tasks.md",
 ];
 for (const path of tracked)

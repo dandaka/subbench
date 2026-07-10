@@ -1,0 +1,247 @@
+{
+  "schema_version": 2,
+  "benchmark": "DeepSWE",
+  "sources": [
+    {
+      "url": "data/deepswe-v1.1-2026-07-10/artifacts/tasks.json",
+      "retrieved_at": "2026-07-10T08:52:36Z",
+      "sha256": "bae967f6472943564c3fc5232fba3c8e0ac465c1be5ccf9dd4895d4ee9df6242"
+    },
+    {
+      "url": "data/deepswe-v1.1-2026-07-10/artifacts/trials.json",
+      "retrieved_at": "2026-07-10T08:52:36Z",
+      "sha256": "9f66c404d141fc18efc3d3c67e4f495e0b8b103109cb430eb5e436c9020e9794"
+    }
+  ],
+  "selection_config": {
+    "model": "gpt-5-5",
+    "reasoning_effort": "xhigh",
+    "config": "mini_swe_agent_gpt_5_5_xhigh"
+  },
+  "economics": [
+    {
+      "model": "claude-opus-4-8",
+      "model_version": "",
+      "reasoning_effort": "max",
+      "config": "mini_swe_agent_claude_opus_4_8_max",
+      "pass_at_1": 0.5897435897435898,
+      "avg_cost_usd": 13.222583593240099,
+      "avg_steps": 120,
+      "sample_size": 429
+    },
+    {
+      "model": "glm-5-2",
+      "model_version": "",
+      "reasoning_effort": "max",
+      "config": "mini_swe_agent_glm_5_2_max",
+      "pass_at_1": 0.43777777777777777,
+      "avg_cost_usd": 3.919907574311108,
+      "avg_steps": 129.12666666666667,
+      "sample_size": 450
+    },
+    {
+      "model": "gpt-5-5",
+      "model_version": "",
+      "reasoning_effort": "xhigh",
+      "config": "mini_swe_agent_gpt_5_5_xhigh",
+      "pass_at_1": 0.6703539823008849,
+      "avg_cost_usd": 7.226236674778755,
+      "avg_steps": 82.01548672566372,
+      "sample_size": 452
+    }
+  ],
+  "tasks": [
+    {
+      "base_commit_hash": "0dd6132e0c58edbd9b1a5f7ffd00dfab1e6085ad",
+      "display_description": "Add read and write support for HTML documents with Dasel's format handling.",
+      "id": "dasel-html-document-format",
+      "language": "go",
+      "problem_title": "Add HTML document format handling to Dasel",
+      "prompt_characters": 1546,
+      "repository": "TomWright/dasel",
+      "repository_url": "https://github.com/TomWright/dasel",
+      "pass_rate": 0.75,
+      "avg_cost_usd": 3.4627932499999994,
+      "avg_steps": 53.75,
+      "avg_minutes": 17.994841225,
+      "trial_count": 4,
+      "model_costs": {
+        "gpt-5-5|xhigh|\"mini_swe_agent_gpt_5_5_xhigh\"": 3.4627932499999994,
+        "claude-opus-4-8|max|\"mini_swe_agent_claude_opus_4_8_max\"": 5.794499125,
+        "glm-5-2|max|\"mini_swe_agent_glm_5_2_max\"": 1.9812032199999998
+      },
+      "slot": "go@p10",
+      "cost_quantile": 0.1,
+      "difficulty_target": "easy",
+      "target_cost_usd": 3.5052252499999996
+    },
+    {
+      "base_commit_hash": "7abc5278782e3280fec8292b39807ec1b537eaf4",
+      "display_description": "Add spec.consistentHash to TrafficPolicy and merge it into route hash_policy generation.",
+      "id": "kgateway-consistent-hash-policy",
+      "language": "go",
+      "problem_title": "Add consistent hash policy support to TrafficPolicy",
+      "prompt_characters": 2181,
+      "repository": "kgateway-dev/kgateway",
+      "repository_url": "https://github.com/kgateway-dev/kgateway",
+      "pass_rate": 0.5,
+      "avg_cost_usd": 6.76216125,
+      "avg_steps": 90.5,
+      "avg_minutes": 25.432393375,
+      "trial_count": 4,
+      "model_costs": {
+        "gpt-5-5|xhigh|\"mini_swe_agent_gpt_5_5_xhigh\"": 6.76216125,
+        "claude-opus-4-8|max|\"mini_swe_agent_claude_opus_4_8_max\"": 17.335091999999996,
+        "glm-5-2|max|\"mini_swe_agent_glm_5_2_max\"": 3.24552594
+      },
+      "slot": "go@p75",
+      "cost_quantile": 0.75,
+      "difficulty_target": "mid",
+      "target_cost_usd": 7.5244056875
+    },
+    {
+      "base_commit_hash": "8d74ffc93292c604d5827e2b44fffedca0c28c19",
+      "display_description": "Add safe bulk import checkpoints, invariant validation, and rollback-on-failure behavior.",
+      "id": "sqlite-utils-safe-import-checkpoints",
+      "language": "python",
+      "problem_title": "Add safe import checkpoints and invariant validation",
+      "prompt_characters": 2509,
+      "repository": "simonw/sqlite-utils",
+      "repository_url": "https://github.com/simonw/sqlite-utils",
+      "pass_rate": 0.75,
+      "avg_cost_usd": 4.63628425,
+      "avg_steps": 62.5,
+      "avg_minutes": 18.794151825000004,
+      "trial_count": 4,
+      "model_costs": {
+        "gpt-5-5|xhigh|\"mini_swe_agent_gpt_5_5_xhigh\"": 4.63628425,
+        "claude-opus-4-8|max|\"mini_swe_agent_claude_opus_4_8_max\"": 13.675532375,
+        "glm-5-2|max|\"mini_swe_agent_glm_5_2_max\"": 4.63568165
+      },
+      "slot": "python@p25",
+      "cost_quantile": 0.25,
+      "difficulty_target": "easy",
+      "target_cost_usd": 4.7259398125
+    },
+    {
+      "base_commit_hash": "de139fd51c4d347666d109a8aea9d25451d908f6",
+      "display_description": "Add field_options support for flattening nested dataclass fields into parent dictionaries with prefix and rename validation.",
+      "id": "mashumaro-flattened-dataclass-fields",
+      "language": "python",
+      "problem_title": "Add flattened dataclass fields to Mashumaro field options",
+      "prompt_characters": 471,
+      "repository": "Fatal1ty/mashumaro",
+      "repository_url": "https://github.com/Fatal1ty/mashumaro",
+      "pass_rate": 0.75,
+      "avg_cost_usd": 9.013079000000001,
+      "avg_steps": 107.75,
+      "avg_minutes": 34.292217525,
+      "trial_count": 4,
+      "model_costs": {
+        "gpt-5-5|xhigh|\"mini_swe_agent_gpt_5_5_xhigh\"": 9.013079000000001,
+        "claude-opus-4-8|max|\"mini_swe_agent_claude_opus_4_8_max\"": 12.664676687499998,
+        "glm-5-2|max|\"mini_swe_agent_glm_5_2_max\"": 4.80700533
+      },
+      "slot": "python@p90",
+      "cost_quantile": 0.9,
+      "difficulty_target": "mid",
+      "target_cost_usd": 9.256582774999998
+    },
+    {
+      "base_commit_hash": "31cbe9a1a26b3822a6c82ad50132508087cd24bc",
+      "display_description": "Add a deferred command buffer that batches entity mutations during query iteration and flushes them at defined boundaries.",
+      "id": "koota-deferred-mutation-buffer",
+      "language": "typescript",
+      "problem_title": "Add a deferred mutation buffer to batch entity changes",
+      "prompt_characters": 932,
+      "repository": "pmndrs/koota",
+      "repository_url": "https://github.com/pmndrs/koota",
+      "pass_rate": 0.5,
+      "avg_cost_usd": 7.3851405,
+      "avg_steps": 78,
+      "avg_minutes": 52.61899442083333,
+      "trial_count": 4,
+      "model_costs": {
+        "gpt-5-5|xhigh|\"mini_swe_agent_gpt_5_5_xhigh\"": 7.3851405,
+        "claude-opus-4-8|max|\"mini_swe_agent_claude_opus_4_8_max\"": 13.548729999999997,
+        "glm-5-2|max|\"mini_swe_agent_glm_5_2_max\"": 2.2689609200000005
+      },
+      "slot": "ts@p50",
+      "cost_quantile": 0.5,
+      "difficulty_target": "mid",
+      "target_cost_usd": 7.204422625
+    },
+    {
+      "base_commit_hash": "9245bc59ebfa688e8c92dd691296ee69d0815e59",
+      "display_description": "Add typed Server-Sent Events streaming endpoints, encoders/decoders, and client handling to HttpApi.",
+      "id": "effect-sse-httpapi-streaming",
+      "language": "typescript",
+      "problem_title": "Add SSE streaming endpoints to HttpApi",
+      "prompt_characters": 2177,
+      "repository": "Effect-TS/effect",
+      "repository_url": "https://github.com/Effect-TS/effect",
+      "pass_rate": 0.5,
+      "avg_cost_usd": 16.061403249999998,
+      "avg_steps": 137.5,
+      "avg_minutes": 44.682240075,
+      "trial_count": 4,
+      "model_costs": {
+        "gpt-5-5|xhigh|\"mini_swe_agent_gpt_5_5_xhigh\"": 16.061403249999998,
+        "claude-opus-4-8|max|\"mini_swe_agent_claude_opus_4_8_max\"": 23.010080812499996,
+        "glm-5-2|max|\"mini_swe_agent_glm_5_2_max\"": 11.26297667
+      },
+      "slot": "ts@p97",
+      "cost_quantile": 0.97,
+      "difficulty_target": "hard",
+      "target_cost_usd": 16.20452753749997
+    },
+    {
+      "base_commit_hash": "7795050a749bd1111cbbdd9d0219b27226a8e710",
+      "display_description": "Add strict, deterministic conflict detection for Y.Map key writes with collect and error policies.",
+      "id": "yjs-map-conflict-detection",
+      "language": "javascript",
+      "problem_title": "Add deterministic map conflict detection to Y.Map writes",
+      "prompt_characters": 1659,
+      "repository": "yjs/yjs",
+      "repository_url": "https://github.com/yjs/yjs",
+      "pass_rate": 0.75,
+      "avg_cost_usd": 5.2364042500000005,
+      "avg_steps": 61.25,
+      "avg_minutes": 20.827265325,
+      "trial_count": 4,
+      "model_costs": {
+        "gpt-5-5|xhigh|\"mini_swe_agent_gpt_5_5_xhigh\"": 5.2364042500000005,
+        "claude-opus-4-8|max|\"mini_swe_agent_claude_opus_4_8_max\"": 15.260397812500004,
+        "glm-5-2|max|\"mini_swe_agent_glm_5_2_max\"": 3.3829004300000003
+      },
+      "slot": "js@p50",
+      "cost_quantile": 0.5,
+      "difficulty_target": "hard",
+      "target_cost_usd": 5.2364042500000005
+    },
+    {
+      "base_commit_hash": "1fd7fab851ecc975e008be0e3e279568ce4e2b51",
+      "display_description": "Keep rewrite optimizations from breaking structure-dependent stylesheet selector matching.",
+      "id": "oxvg-structural-selector-preservation",
+      "language": "rust",
+      "problem_title": "Preserve structure needed by stylesheet selectors",
+      "prompt_characters": 757,
+      "repository": "noahbald/oxvg",
+      "repository_url": "https://github.com/noahbald/oxvg",
+      "pass_rate": 0.25,
+      "avg_cost_usd": 9.905553500000002,
+      "avg_steps": 108.25,
+      "avg_minutes": 37.9043427,
+      "trial_count": 4,
+      "model_costs": {
+        "gpt-5-5|xhigh|\"mini_swe_agent_gpt_5_5_xhigh\"": 9.905553500000002,
+        "claude-opus-4-8|max|\"mini_swe_agent_claude_opus_4_8_max\"": 21.070486937500004,
+        "glm-5-2|max|\"mini_swe_agent_glm_5_2_max\"": 5.71506735
+      },
+      "slot": "rust@p50",
+      "cost_quantile": 0.5,
+      "difficulty_target": "mid",
+      "target_cost_usd": 9.905553500000002
+    }
+  ]
+}

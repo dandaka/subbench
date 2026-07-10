@@ -25,7 +25,9 @@ const lock: DeepSweLock = {
   sources: JSON.parse(required("--sources")) as DeepSweLock["sources"],
   deepswe_commit: required("--deepswe-commit"),
   verifier_version: required("--verifier-version"),
-  task_images: JSON.parse(required("--task-images")) as DeepSweLock["task_images"],
+  task_images: JSON.parse(
+    required("--task-images"),
+  ) as DeepSweLock["task_images"],
   runner: {
     pier_version: required("--pier-version"),
     client_versions: JSON.parse(required("--client-versions")),

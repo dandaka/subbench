@@ -125,6 +125,8 @@ function claudeBundle(
         model_version: "2026-07",
         task_cost_model: "claude-opus-4-8",
         task_cost_model_version: "2026-07",
+        task_cost_reasoning_effort: "xhigh",
+        task_cost_configuration: {},
         task_manifest: "fixture-fixed-set",
         product_surface: "claude-code",
         product_version: "2.1.205",

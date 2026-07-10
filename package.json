@@ -11,6 +11,7 @@
     "select:tasks": "bun run scripts/select-deepswe-tasks.ts",
     "archive:deepswe": "bun run scripts/archive-deepswe-artifacts.ts",
     "verify:deepswe-lock": "bun run scripts/verify-deepswe-lock.ts",
+    "create:frozen-studies": "bun run scripts/create-frozen-deepswe-studies.ts",
     "calibrate:openai": "bun run scripts/run-deepswe-calibration.ts",
     "calibrate:zai": "bun run scripts/run-zai-deepswe-calibration.ts",
     "calibrate:claude": "bun run scripts/run-claude-deepswe-calibration.ts",

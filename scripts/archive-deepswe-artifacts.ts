@@ -3,7 +3,7 @@
 /** Download the public, immutable inputs before selection. No benchmark task is run. */
 import { createHash } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { resolve } from "node:path";
 
 function required(name: string): string {
   const at = process.argv.indexOf(name);
@@ -29,7 +29,12 @@ for (const [filename, url] of inputs) {
   const bytes = new Uint8Array(await response.arrayBuffer());
   const path = resolve(output, filename);
   writeFileSync(path, bytes);
-  sources.push({ url, retrieved_at: retrievedAt, archive_path: path, sha256: sha256(bytes) });
+  sources.push({
+    url,
+    retrieved_at: retrievedAt,
+    archive_path: path,
+    sha256: sha256(bytes),
+  });
 }
 writeFileSync(
   resolve(output, "sources.json"),

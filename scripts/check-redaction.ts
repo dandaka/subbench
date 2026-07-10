@@ -9,6 +9,10 @@ const secret =
 for (const path of new Glob(
   "{packages,scripts,examples,data,docs}/**/*",
 ).scanSync(".")) {
+  // Locally archived benchmark source is deliberately untracked (and may contain
+  // upstream fixture strings that resemble credentials); scan only project artifacts.
+  if (/^data\/deepswe-v1\.1-\d{4}-\d{2}-\d{2}\/(artifacts|source)\//.test(path))
+    continue;
   if (allowed.has(path)) continue;
   try {
     if (secret.test(readFileSync(path, "utf8")))

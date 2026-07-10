@@ -64,14 +64,6 @@ export function validateLock(lock: DeepSweLock): void {
   }
   if (!lock.verifier_version) throw new Error("lock has no verifier version");
   if (
-    Object.keys(lock.task_images ?? {}).length !== lock.tasks.length ||
-    lock.tasks.some((task) => {
-      const image = lock.task_images[task.id];
-      return !image?.name || !/^sha256:[a-f0-9]{64}$/i.test(image.digest);
-    })
-  )
-    throw new Error("lock has incomplete immutable task image digests");
-  if (
     !lock.runner?.pier_version ||
     !Object.keys(lock.runner.client_versions ?? {}).length
   )
@@ -104,6 +96,14 @@ export function validateLock(lock: DeepSweLock): void {
     ids.add(task.id);
   }
   if (!lock.tasks.length) throw new Error("lock contains no tasks");
+  if (
+    Object.keys(lock.task_images ?? {}).length !== lock.tasks.length ||
+    lock.tasks.some((task) => {
+      const image = lock.task_images[task.id];
+      return !image?.name || !/^sha256:[a-f0-9]{64}$/i.test(image.digest);
+    })
+  )
+    throw new Error("lock has incomplete immutable task image digests");
 }
 
 export function readAndVerifyLock(root: string, path: string): DeepSweLock {
