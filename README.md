@@ -29,6 +29,44 @@ developer value per dollar =
   / subscription price
 ```
 
+## How the Comparison Works
+
+1. Define a measurement cell: `(provider, plan, model, product surface)`. V1
+   measures each plan's default model and one flagship model separately.
+2. Run the same balanced set of eight DeepSWE calibration tasks in a clean,
+   pinned environment. The tasks cover five languages and include easy, typical,
+   and high-cost work.
+3. Before and after every task, capture the subscription usage indicator. Record
+   success or failure, retries, throttles, elapsed time, and aborts; failed
+   attempts remain in the data because they consume quota.
+4. Measure usable quota capacity in its native weekly or monthly window and
+   prorate the subscription price to that same window.
+5. Join observed quota drain and native success rate to published benchmark task
+   economics. This produces the primary result: estimated successful native tasks
+   per quota window and the Subscription Value Index (tasks per window-dollar).
+6. Separately, use published pass@1 to calculate benchmark-equivalent throughput,
+   API cost per success, and the subscription/API break-even point.
+
+Every run requires a recorded account-isolation confirmation: no other sessions,
+agents, automations, or teammates may consume the same subscription during the
+measurement window. See the [measurement protocol](docs/protocol.md) for the
+full requirements.
+
+### Test Volume and Result Quality
+
+Each cell needs at least **5 valid task runs** to be publishable. The target is
+**8 runs per cell**—one per selected calibration task—and it can increase to
+**10** when the bootstrap interval is too wide. A plan with a default and a
+flagship model therefore needs about **16 task attempts**, plus capacity
+observations.
+
+Results support a scoped decision: which plan delivered more successful developer
+work per dollar for this workload, model, product surface, and measurement period.
+They are not a universal provider ranking. Reports show the sample size, median and
+p90 drain, measurement grade, and bootstrap interval; with only 5–10 runs, wide
+intervals are expected, particularly when the usage meter is rounded or quota drain
+is heavy-tailed.
+
 ## Why This Exists
 
 Developers often compare subscriptions using anecdotes:
