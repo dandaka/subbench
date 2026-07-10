@@ -3,6 +3,21 @@
 This log records durable changes and decisions that affect future work. It is not a
 measurement run log and does not establish publication evidence.
 
+## 2026-07-10 — Add rationale and open-questions docs
+
+- Added [why-calibration.md](why-calibration.md): the "why not just use imported token
+  costs?" answer — imported economics cover the API side, but the subscription meter is
+  opaque, harness-dependent, and success-weighted, so a real drain measurement is
+  irreducible; task content is irrelevant but cost-distribution coverage is not.
+- Added [open-questions.md](open-questions.md): durable home for open questions. Records
+  the operating stance — value-first / black-box; understanding a provider's internal
+  subscription structure (token vs dollar vs credit vs dynamic) is an explicit V1
+  non-goal, kept as a curiosity with a clear trigger (only model structure if the
+  black-box conversion factor proves unstable across workload shapes).
+- Indexed both in the docs list (AGENTS.md, symlinked as CLAUDE.md). No methodology or
+  formula change; the terse V1 open-questions subset in methodology.md is unchanged and
+  now cross-referenced.
+
 ## 2026-07-10 — DeepSWE pre-collection freeze (reconstructed from `cf8b578` on `main`)
 
 - Froze the Tier A DeepSWE v1.1 selection, provenance lock, task order, verifier/image

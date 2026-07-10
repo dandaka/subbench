@@ -5,6 +5,8 @@ Key documents in `docs/` (read the relevant one before working):
 - [docs/goal.md](docs/goal.md) — project goal
 - [docs/protocol.md](docs/protocol.md) — measurement protocol. **Read before running or modifying any benchmark.** Section 2 carries a mandatory operator isolation check that must be confirmed and recorded before every run, or the run is invalid.
 - [docs/methodology.md](docs/methodology.md) — methodology
+- [docs/why-calibration.md](docs/why-calibration.md) — why calibration is needed (the "why not just use tokens?" answer)
+- [docs/open-questions.md](docs/open-questions.md) — open questions, including whether to reverse-engineer subscription structure
 - [docs/calibration-tasks.md](docs/calibration-tasks.md) — calibration task set
 - [docs/running-claude-max-calibration.md](docs/running-claude-max-calibration.md) — operator runbook: how to run a Claude Max calibration test
 - [docs/research.md](docs/research.md) — supporting research and external context
