@@ -28,7 +28,8 @@ type Artifact<T> = { rows: T[] } | T[];
 export interface ModelConfig {
   model: string;
   reasoning_effort: string;
-  config: Record<string, unknown>;
+  /** DeepSWE currently records its agent configuration as a string. */
+  config: Record<string, unknown> | string;
 }
 interface Stats extends Task {
   pass_rate: number;
@@ -81,13 +82,10 @@ const slots: Slot[] = [
   { name: "rust@p50", language: "rust", costQuantile: 0.5, difficulty: "mid" },
 ];
 const targets = { easy: 0.85, mid: 0.5, hard: 0.15 };
-const canonical = (value: unknown) =>
-  JSON.stringify(
-    value ?? {},
-    Object.keys(
-      (value && typeof value === "object" ? value : {}) as object,
-    ).sort(),
-  );
+const canonical = (value: unknown) => {
+  if (!value || typeof value !== "object") return JSON.stringify(value ?? {});
+  return JSON.stringify(value, Object.keys(value as object).sort());
+};
 const key = (spec: ModelConfig) =>
   `${spec.model}|${spec.reasoning_effort}|${canonical(spec.config)}`;
 const trialKey = (trial: Trial) =>
@@ -145,6 +143,9 @@ export function importEconomics(
     .map((id) => {
       const task = byTask.get(id);
       if (!task) throw new Error(`missing task metadata: ${id}`);
+      // A lock can only reproduce a full git object ID. Exclude malformed upstream
+      // entries rather than silently treating an abbreviation as immutable provenance.
+      if (!/^[a-f0-9]{40}$/i.test(task.base_commit_hash)) return undefined;
       const rows = selectionRows.filter((trial) => trial.task_name === id);
       const modelCosts: Record<string, number> = {};
       for (const config of configs) {
@@ -164,6 +165,7 @@ export function importEconomics(
         model_costs: modelCosts,
       };
     })
+    .filter((task): task is Stats => task !== undefined)
     .toSorted((a, b) => a.id.localeCompare(b.id));
   return { economics, stats };
 }

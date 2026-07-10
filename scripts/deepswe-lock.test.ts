@@ -17,12 +17,15 @@ function lock(): DeepSweLock {
       {
         url: "https://example.invalid/tasks",
         retrieved_at: "2026-07-10T00:00:00Z",
+        archive_path: "tasks.json",
         sha256: "a".repeat(64),
       },
     ],
     deepswe_commit: "b".repeat(40),
     verifier_version: "v1",
-    image: { name: "image", digest: `sha256:${"c".repeat(64)}` },
+    task_images: {
+      one: { name: "image", digest: `sha256:${"c".repeat(64)}` },
+    },
     runner: { pier_version: "1", client_versions: { client: "1" } },
     selection: {
       script_commit: "d".repeat(40),

@@ -5,10 +5,15 @@ import { resolve } from "node:path";
 export interface DeepSweLock {
   schema_version: 1;
   benchmark: "DeepSWE";
-  sources: Array<{ url: string; retrieved_at: string; sha256: string }>;
+  sources: Array<{
+    url: string;
+    retrieved_at: string;
+    archive_path: string;
+    sha256: string;
+  }>;
   deepswe_commit: string;
   verifier_version: string;
-  image: { name: string; digest: string };
+  task_images: Record<string, { name: string; digest: string }>;
   runner: { pier_version: string; client_versions: Record<string, string> };
   selection: {
     script_commit: string;
@@ -46,7 +51,11 @@ export function validateLock(lock: DeepSweLock): void {
   if (
     !lock.sources.length ||
     lock.sources.some(
-      (source) => !source.url || !source.retrieved_at || !isHash(source.sha256),
+      (source) =>
+        !source.url ||
+        !source.retrieved_at ||
+        !source.archive_path ||
+        !isHash(source.sha256),
     )
   ) {
     throw new Error(
@@ -54,8 +63,14 @@ export function validateLock(lock: DeepSweLock): void {
     );
   }
   if (!lock.verifier_version) throw new Error("lock has no verifier version");
-  if (!lock.image?.name || !/^sha256:[a-f0-9]{64}$/i.test(lock.image.digest))
-    throw new Error("lock has no immutable image digest");
+  if (
+    Object.keys(lock.task_images ?? {}).length !== lock.tasks.length ||
+    lock.tasks.some((task) => {
+      const image = lock.task_images[task.id];
+      return !image?.name || !/^sha256:[a-f0-9]{64}$/i.test(image.digest);
+    })
+  )
+    throw new Error("lock has incomplete immutable task image digests");
   if (
     !lock.runner?.pier_version ||
     !Object.keys(lock.runner.client_versions ?? {}).length

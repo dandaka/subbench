@@ -16,14 +16,16 @@ const selection = JSON.parse(
   Bun.file(resolve(root, selectionPath)).size
     ? await Bun.file(resolve(root, selectionPath)).text()
     : "{}",
-) as { tasks?: DeepSweLock["tasks"] };
+) as {
+  tasks?: Array<{ id: string; base_commit_hash: string }>;
+};
 const lock: DeepSweLock = {
   schema_version: 1,
   benchmark: "DeepSWE",
   sources: JSON.parse(required("--sources")) as DeepSweLock["sources"],
   deepswe_commit: required("--deepswe-commit"),
   verifier_version: required("--verifier-version"),
-  image: { name: required("--image-name"), digest: required("--image-digest") },
+  task_images: JSON.parse(required("--task-images")) as DeepSweLock["task_images"],
   runner: {
     pier_version: required("--pier-version"),
     client_versions: JSON.parse(required("--client-versions")),
@@ -36,7 +38,12 @@ const lock: DeepSweLock = {
     output_path: selectionPath,
     output_sha256: sha256File(resolve(root, selectionPath)),
   },
-  tasks: selection.tasks ?? [],
+  tasks: (selection.tasks ?? []).map((task) => ({
+    id: task.id,
+    base_commit: task.base_commit_hash,
+    weight: 1,
+    expected_repetitions: 1,
+  })),
 };
 validateLock(lock);
 const output = resolve(root, required("--output"));
