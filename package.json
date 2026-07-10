@@ -1,0 +1,32 @@
+{
+  "name": "subbench",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "bun@1.3.14",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "subbench": "bun run packages/cli/src/index.ts",
+    "select:tasks": "bun run scripts/select-deepswe-tasks.ts",
+    "archive:deepswe": "bun run scripts/archive-deepswe-artifacts.ts",
+    "verify:deepswe-lock": "bun run scripts/verify-deepswe-lock.ts",
+    "create:frozen-studies": "bun run scripts/create-frozen-deepswe-studies.ts",
+    "calibrate:openai": "bun run scripts/run-deepswe-calibration.ts",
+    "calibrate:zai": "bun run scripts/run-zai-deepswe-calibration.ts",
+    "calibrate:claude": "bun run scripts/run-claude-deepswe-calibration.ts",
+    "probe:claude": "bun run scripts/probe-claude-usage.ts",
+    "test": "bun test",
+    "typecheck": "tsc --build",
+    "lint": "biome check .",
+    "format:check": "biome ci .",
+    "freshness": "bun run scripts/check-generated.ts",
+    "redaction": "bun run scripts/check-redaction.ts",
+    "check": "bun run typecheck && bun run lint && bun run format:check && bun run freshness && bun run redaction && bun test"
+  },
+  "devDependencies": {
+    "@types/bun": "1.3.14",
+    "typescript": "7.0.2",
+    "@biomejs/biome": "2.4.5"
+  }
+}

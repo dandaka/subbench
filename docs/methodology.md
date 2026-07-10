@@ -9,17 +9,40 @@ The benchmark value comes from joining those two sides.
 
 ## Formula
 
+The canonical unit is the **quota window** (weekly or monthly), not the billing period.
+Capacity is measured against the window; the price is prorated into it.
+
 ```text
-estimated successful tasks per billing period =
-  observed subscription capacity
-  / cost per successful benchmark task
+window_price = subscription price × quota_window_days / billing_days
+```
+
+Two estimands are reported, named honestly:
+
+```text
+# PRIMARY (native): what goal.md promises — successful developer work.
+native tasks per window =
+  observed capacity × sum(task weight × success)
+  / sum(task weight × observed quota drain)
+
+Subscription Value Index (SVI) =
+  native tasks per window / window_price
 ```
 
 ```text
-Subscription Value Index =
-  estimated successful tasks per billing period
-  / subscription price
+# SECONDARY (benchmark-equivalent): the API-comparison anchor only.
+benchmark-equivalent tasks per window =
+  observed capacity / (published avg cost per task × conversion factor)
+  × published pass@1
 ```
+
+The primary metric uses **all observed native drain** from the calibration runs (five
+failures give an SVI point estimate of 0 with a positive upper sensitivity bound — honest,
+not a bug). The
+secondary metric uses published pass@1 because the API comparison
+(`api cost per success = avg cost / pass@1`) must be internally consistent with it. When
+no compatible published economics exist, the secondary metric and API comparison are
+omitted and the measurement records an `economics_gap`; the primary native metric is still
+produced.
 
 ## V1 Strategy
 
@@ -31,15 +54,18 @@ units.
 1. Adopt one published benchmark as the task-economics source (see Task Cost Sources).
    It supplies pass@1, avg cost per task, and output tokens per model.
 2. Build a drain-tracking harness: for each (provider, plan, model, product surface),
-   run a small calibration workload (~5-10 tasks) through the subscription product,
-   recording usage indicators before and after each task. This yields a conversion
-   factor: subscription-quota drain per API-equivalent dollar.
+   run the frozen workload through the subscription product, recording paired usage
+   snapshots before and after each task.
 3. Measure total usable capacity per billing period via the same usage indicators
    (and depletion experiments where indicators are too coarse).
-4. Estimated tasks per billing period = capacity ÷ (published cost per task ×
-   conversion factor) × pass@1, with failed-attempt drain accounted per the Cost
-   Accounting Rule.
-5. Publish measurement grade and statistical confidence for every estimate.
+4. Native tasks per window = capacity × weighted successful tasks ÷ weighted all-attempt
+   quota drain, with failed-attempt drain accounted per the Cost Accounting Rule.
+   The benchmark-equivalent secondary metric substitutes published pass@1 for the native
+   rate and is reported only as the API-comparison anchor.
+5. Publish measurement grade and uncertainty for every estimate. Resampling preserves
+   task-clustered outcome/drain pairs; a Wilson envelope prevents an all-failure interval
+   from degenerating to zero. Label it an "uncertainty/sensitivity interval for fixed runs",
+   not a blanket 95% CI, until its coverage and meter-error model are established.
 
 ### Harness Mismatch Disclaimer
 
@@ -107,6 +133,17 @@ All runs use a clean, reproducible environment:
 
 Any deviation from the clean environment invalidates the run.
 
+## Account Isolation
+
+Environment isolation is not enough: providers share quota across product surfaces
+(Claude shares limits across Code, chat, and Cowork; ChatGPT shares agentic credits
+across surfaces). Any usage on another surface during a measurement window silently
+inflates observed drain.
+
+The measurement account must be dedicated to SubBench, or verified idle on all other
+surfaces for the entire measurement window. Any concurrent non-measurement usage on
+the account invalidates the window.
+
 ## Provider Measurement
 
 For each provider and plan:
@@ -128,8 +165,14 @@ These are two separate dimensions and must never be conflated.
 
 Measurement grade — quality of the quota data source:
 
-- Exact: precise quota deltas are available.
-- Rounded: only rounded usage percentages are available.
+- Exact: precise quota deltas are available. For Claude cells, exact utilization
+  floats can be recovered from `message_limit` objects in Claude.ai SSE response
+  bodies (she-llac/claude-counter methodology). This technique rests on a single
+  unreplicated source: validate the SSE-derived values against displayed
+  percentages during the first runs of each Claude cell before relying on them.
+- Rounded: only rounded usage percentages are available. Note that rounding adds
+  quantization error on the order of ±1 point per run; with typical drains of
+  5-6 points this is ~±20% per run, mitigated by sample size.
 - Inferred: quota is inferred from depletion experiments.
 - Unknown: insufficient data.
 
@@ -146,7 +189,10 @@ Never mix grades or hide n.
 
 ## Cost Accounting Rule
 
-Cost per successful task includes the quota drain of failed attempts and retries:
+Cost per successful task includes the quota drain of failed attempts and retries. This
+applies to the **primary native** metric: the native success rate that scales capacity is
+`successCount / runCount` over all attempts, so failed and retried attempts consume the
+window without producing a success.
 
 ```text
 drain per successful task =
@@ -181,9 +227,15 @@ Read as: "at full quota utilization, this plan delivers N× the successful work 
 same spend on API tokens."
 
 ```text
-break-even utilization (tasks per billing period) =
-  subscription price / API cost per successful task
+break-even utilization (tasks per quota window) =
+  window_price / API cost per successful task
 ```
+
+The subscription side of the comparison uses SVI (native tasks per window per
+window-dollar). The API side uses published pass@1, so the comparison is internally
+consistent only against the benchmark-equivalent estimand; the report labels it as such.
+When a measurement carries an `economics_gap` (no compatible published economics), the API
+comparison and break-even are omitted entirely.
 
 Break-even is the more decision-relevant number: the value multiple assumes the quota
 is fully drained, which real users rarely do. Below break-even tasks per period,
@@ -245,8 +297,20 @@ Secondary candidate — FrontierCode 1.1 (cognition.com/blog/frontier-code-1.1):
 When pulling published numbers, use the effort level closest to each subscription
 product's default configuration.
 
+Rejected for V1 — SWE-Lancer: despite its attractive economic framing (real Upwork
+payouts), it publishes no per-model, per-task cost artifacts of the kind the V1
+economics import requires, is OpenAI-controlled, and is single-repo (Expensify).
+It remains a V2 candidate for a "developer value" framing. Do not re-litigate this
+choice without new evidence that per-trial cost data has been published.
+
 Other published cost data (Artificial Analysis, SWE-bench Pro, SWE Atlas) is used only
 to sanity-check that adopted costs are plausible.
+
+Cross-source sanity check (required at publish time): benchmark pass rates are
+gameable, and V1 trusts a single source. Before publishing, compare the adopted
+source's pass@1 and cost-per-task against independent sources (Aider leaderboard,
+MorphLLM, Ivern AI) for the same models, and flag any wild divergence in the
+report's caveats. This is a plausibility check, not re-measurement.
 
 ## Success Definition
 

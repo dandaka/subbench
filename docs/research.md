@@ -98,6 +98,22 @@ Source: https://she-llac.com/claude-limits
 
 Related tool: https://github.com/she-llac/claude-counter
 
+### Multi-Provider Usage Collection
+
+ClaudeBar is an open-source macOS quota monitor with separate collectors for Claude,
+Codex, Z.ai, OpenCode Go, Cursor, Copilot, Gemini, and other coding tools. Its provider
+layer demonstrates several practical quota interfaces, including Codex app-server RPC,
+Claude's OAuth usage endpoint, and Z.ai's quota endpoint.
+
+SubBench's study distinguishes server-reported quota data from CLI display parsing and
+local reconstruction, then turns those findings into a provider-neutral implementation
+plan.
+
+Sources:
+
+- https://github.com/tddworks/ClaudeBar
+- [ClaudeBar provider research and implementation plan](claudebar-provider-research.md)
+
 ## Gap
 
 Existing work can answer:

@@ -1,7 +1,15 @@
 .DS_Store
+.venv/
+__pycache__/
 node_modules/
 dist/
 build/
+.subbench/
+*.tsbuildinfo
+*.db
 .env
 .env.*
 !.env.example
+# DeepSWE source artifacts contain benchmark material and are archived locally, not vendored.
+data/deepswe-v1.1-*/artifacts/
+data/deepswe-v1.1-*/source/

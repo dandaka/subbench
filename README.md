@@ -1,6 +1,6 @@
 # SubBench
 
-SubBench is an experimental benchmark for measuring AI coding subscription value per developer dollar.
+SubBench is developing a calibration framework; subscription value has not yet been measured.
 
 Most public comparisons answer one of two questions:
 
@@ -11,14 +11,14 @@ SubBench focuses on the missing third question:
 
 > How much successful developer work does a flat-rate AI subscription actually buy?
 
-The goal is to compare plans such as Claude, OpenAI, and Z.ai using measured task outcomes, observed subscription capacity, and published or reproduced cost-per-task data.
+The goal is to support a future fixed-set comparison using measured task outcomes, observed subscription capacity, and compatible benchmark economics. It does not currently support a provider ranking.
 
 ## Core Idea
 
 ```text
 subscription value =
   observed subscription capacity
-  / cost per successful benchmark task
+  × successful tasks / all observed quota drain
 ```
 
 For developer-facing comparisons:
@@ -28,6 +28,44 @@ developer value per dollar =
   successful benchmark-equivalent tasks per billing period
   / subscription price
 ```
+
+## How the Comparison Works
+
+1. Define a measurement cell: `(provider, plan, model, product surface)`. V1
+   measures each plan's default model and one flagship model separately.
+2. Run the same balanced set of eight DeepSWE calibration tasks in a clean,
+   pinned environment. The tasks cover five languages and include easy, typical,
+   and high-cost work.
+3. Before and after every task, capture the subscription usage indicator. Record
+   success or failure, retries, throttles, elapsed time, and aborts; failed
+   attempts remain in the data because they consume quota.
+4. Measure usable quota capacity in its native weekly or monthly window and
+   prorate the subscription price to that same window.
+5. Calculate the primary result directly from observed drain: capacity × successful
+   tasks / all observed quota drain. This produces native tasks per quota window and
+   the Subscription Value Index (tasks per window-dollar).
+6. Separately, use published pass@1 to calculate benchmark-equivalent throughput,
+   API cost per success, and the subscription/API break-even point.
+
+Every run requires a recorded account-isolation confirmation: no other sessions,
+agents, automations, or teammates may consume the same subscription during the
+measurement window. See the [measurement protocol](docs/protocol.md) for the
+full requirements.
+
+### Test Volume and Result Quality
+
+Each cell needs at least **5 valid task runs** to be publishable. The target is
+**8 runs per cell**—one per selected calibration task—and it can increase to
+**10** when the bootstrap interval is too wide. A plan with a default and a
+flagship model therefore needs about **16 task attempts**, plus capacity
+observations.
+
+Until Tier A validation passes for at least two comparable cells, reports are methods or
+diagnostic outputs only. A later Tier A result applies only to its frozen calibration set;
+it is not a universal provider ranking. Reports show the sample size, median and
+p90 drain, measurement grade, and bootstrap interval; with only 5–10 runs, wide
+intervals are expected, particularly when the usage meter is rounded or quota drain
+is heavy-tailed.
 
 ## Why This Exists
 
@@ -42,15 +80,84 @@ Those claims may be true for a given workflow, but they are usually not backed b
 
 ## Project Status
 
-Early proof of concept.
+V1 is implemented as a Bun workspace monorepo using TypeScript 7. It captures calibration
+runs and validates evidence, but current historical data and examples are non-publishable.
 
-V1 should not try to invent a new coding benchmark. It should reuse existing benchmark economics where possible and focus on the missing layer: subscription capacity and yield.
+## Quick Start
+
+Requires Bun 1.3.14.
+
+```bash
+bun install
+
+bun run subbench --db demo.db init
+bun run subbench --db demo.db load examples/synthetic.json
+bun run subbench --db demo.db validate
+bun run subbench --db demo.db analyze --format markdown
+```
+
+The example is explicitly synthetic; it tests the pipeline and is not a claim about any
+provider. Real studies should copy its bundle structure and follow the
+[measurement protocol](docs/protocol.md).
+
+Capture a calibration task after creating and loading its measurement metadata:
+
+```bash
+bun run subbench --db study.db run \
+  --measurement-id 1 --benchmark-source-id 1 \
+  --task-id task-001 --environment clean-image-sha256 \
+  --pre-usage 12 --post-usage 18 --api-cost 1.42 \
+  --confirm-isolation "operator name" \
+  -- your-test-command
+```
+
+A zero command exit status counts as success. Use the run flags to preserve retries,
+limit events, promotions, peak hours, and drain-cap aborts.
+
+For an automated usage indicator, replace both explicit usage values with
+`--usage-command 'provider-usage --numeric'`; SubBench invokes it immediately before and
+after the task. In an interactive terminal, `--post-usage` may be omitted and SubBench
+will prompt after the run.
+
+For the OpenAI Plus/DeepSWE study, regenerate the balanced eight-task selection and run
+the next unmeasured task with:
+
+```bash
+bun run select:tasks
+bun run subbench codex-usage --window weekly --format json
+bun run calibrate:openai
+```
+
+The calibration runner uses the authenticated Codex CLI through Pier's isolated Docker
+environment, reads the rolling weekly percentage through Codex's app-server protocol,
+grades with DeepSWE's verifier, and records the result in `openai-plus.db`. Runs are
+sequential, and the runner refuses to start at 70% or more five-hour usage so that the
+short window does not bind during a measured task.
+
+## Monorepo
+
+- `packages/core` — SQLite schema, ingestion, validation, statistics, analysis, reports
+- `packages/cli` — `subbench` command and calibration process runner
+
+Run `bun run check` to type-check every workspace with TypeScript 7 and execute all tests.
+
+## V1 Outputs
+
+- normalized SQLite source data and computed results
+- median and p90 quota drain plus bootstrap confidence intervals
+- successful tasks per billing period and Subscription Value Index
+- API cost per success, value multiple, and break-even utilization
+- measurement grade, sample size, success rate, timing, and limit interruption rate
+- JSON, CSV, and Markdown reports with the harness-mismatch and staleness caveats
 
 ## Docs
 
 - [Goal](docs/goal.md)
 - [Relevant Research](docs/research.md)
+- [ClaudeBar Provider-Usage Research and Implementation Plan](docs/claudebar-provider-research.md)
 - [Methodology](docs/methodology.md)
+- [Measurement Protocol](docs/protocol.md)
+- [OpenAI Plus Calibration Status](docs/openai-plus-calibration-status.md)
 
 ## Initial Scope
 
@@ -79,4 +186,4 @@ Target workload:
 
 ## License
 
-TBD.
+MIT.
