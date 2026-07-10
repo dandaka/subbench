@@ -1,16 +1,6 @@
 import { bootstrapCi, bootstrapJoint, median, percentile, wilsonInterval } from "./stats.ts";
 import type { AnalysisInput, Result } from "./types.ts";
 
-// Capacity-grade sensitivity multipliers applied to the joint bootstrap band. A rounded
-// or inferred capacity carries meter/derivation error beyond sampling noise; we widen the
-// reported interval rather than pretend the point estimate is exact. `exact` adds nothing.
-const GRADE_SENSITIVITY: Record<string, number> = {
-  exact: 0,
-  rounded: 0.02,
-  inferred: 0.05,
-  unknown: 0.1,
-};
-
 export function calculate(input: AnalysisInput): Result {
   const {
     runs, quotaCapacity, quotaWindowDays, planPrice, billingDays, averageCostUsd,
@@ -27,6 +17,10 @@ export function calculate(input: AnalysisInput): Result {
 
   const factors = runs.map((run) => run.usage_delta / run.api_equivalent_usd);
   const successes = runs.map((run) => run.success);
+  const weights = runs.map((run) => run.task_weight ?? 1);
+  if (weights.some((weight) => !(weight > 0) || !Number.isFinite(weight))) {
+    throw new Error("task weights must be finite and positive");
+  }
   const conversionFactor = median(factors);
   const [drainCiLow, drainCiHigh] = bootstrapCi(
     factors.map((factor) => averageCostUsd * factor),
@@ -41,27 +35,44 @@ export function calculate(input: AnalysisInput): Result {
   // is exact and safe to scale linearly.
   const windowPrice = planPrice * quotaWindowDays / billingDays;
 
-  // Tasks the window buys per benchmark-equivalent dollar of drain.
+  const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+  const weightedSuccesses = successes.reduce((sum, success, index) =>
+    sum + success * weights[index]!, 0);
+  const totalWeightedDrain = runs.reduce((sum, run, index) =>
+    sum + run.usage_delta * weights[index]!, 0);
+  if (!(totalWeightedDrain > 0)) throw new Error("total weighted drain must be positive");
+
+  // Tasks the window buys per benchmark-equivalent dollar of drain (secondary only).
   const tasksPerWindowAt = (factor: number) => quotaCapacity / (averageCostUsd * factor);
 
-  // D2 (primary): native successful tasks per window from the native success rate.
-  const nativeTasksPerWindow = tasksPerWindowAt(conversionFactor) * nativeSuccessRate;
+  // Primary native fixed-set estimator: every failure, retry, and abort remains in the
+  // denominator.  Median drain is deliberately only a diagnostic.
+  const nativeTasksPerWindow = quotaCapacity * weightedSuccesses / totalWeightedDrain;
 
   // D5: joint bootstrap over runs — resample (drain factor, success) pairs together so
   // both uncertainties compound. The statistic is native tasks per window per resample.
+  const clusters = new Map<string, number[]>();
+  runs.forEach((run, index) => {
+    const key = run.task_id ?? String(index);
+    clusters.set(key, [...(clusters.get(key) ?? []), index]);
+  });
+  const clusterValues = [...clusters.values()];
   const jointStatistic = (indices: number[]): number => {
-    const resampledFactor = median(indices.map((index) => factors[index]!));
-    const resampledSuccess =
-      indices.reduce((sum, index) => sum + successes[index]!, 0) / indices.length;
-    return tasksPerWindowAt(resampledFactor) * resampledSuccess;
+    const sampledRuns = indices.flatMap((index) => clusterValues[index]!);
+    const numerator = sampledRuns.reduce((sum, index) => sum + successes[index]! * weights[index]!, 0);
+    const denominator = sampledRuns.reduce((sum, index) => sum + runs[index]!.usage_delta * weights[index]!, 0);
+    return denominator > 0 ? quotaCapacity * numerator / denominator : 0;
   };
   let [nativeTasksCiLow, nativeTasksCiHigh] = bootstrapJoint(
-    runs.length, jointStatistic, confidence,
+    clusterValues.length, jointStatistic, confidence,
   );
-  // Fold in the capacity-grade sensitivity as a fixed multiplicative widening.
-  const sensitivity = GRADE_SENSITIVITY[measurementGrade] ?? GRADE_SENSITIVITY.unknown!;
-  nativeTasksCiLow *= 1 - sensitivity;
-  nativeTasksCiHigh *= 1 + sensitivity;
+  // Percentile bootstrap is degenerate at the all-failure boundary.  A conservative
+  // Wilson-success / observed-drain envelope supplies a positive upper sensitivity bound
+  // without pretending that it is a calibrated population confidence interval.
+  const observedDrainPerWeight = totalWeightedDrain / totalWeight;
+  const boundaryUpper = quotaCapacity * successCiHigh / observedDrainPerWeight;
+  nativeTasksCiLow = Math.min(nativeTasksCiLow, quotaCapacity * successCiLow / observedDrainPerWeight);
+  nativeTasksCiHigh = Math.max(nativeTasksCiHigh, boundaryUpper);
 
   const subscriptionValueIndex = nativeTasksPerWindow / windowPrice;
   const subscriptionValueIndexCiLow = nativeTasksCiLow / windowPrice;
@@ -74,9 +85,12 @@ export function calculate(input: AnalysisInput): Result {
     : null;
   const apiCostPerSuccess = hasEconomics ? averageCostUsd / publishedPassAt1 : null;
   const apiTasksPerDollar = apiCostPerSuccess === null ? null : 1 / apiCostPerSuccess;
-  const apiValueMultiple = apiTasksPerDollar === null
+  const benchmarkEquivalentTasksPerDollar = benchmarkEquivalentTasksPerWindow === null
     ? null
-    : subscriptionValueIndex / apiTasksPerDollar;
+    : benchmarkEquivalentTasksPerWindow / windowPrice;
+  const apiValueMultiple = apiTasksPerDollar === null || benchmarkEquivalentTasksPerDollar === null
+    ? null
+    : benchmarkEquivalentTasksPerDollar / apiTasksPerDollar;
   const breakEvenTasks = apiCostPerSuccess === null ? null : windowPrice / apiCostPerSuccess;
 
   return {
@@ -86,6 +100,7 @@ export function calculate(input: AnalysisInput): Result {
     successCiLow,
     successCiHigh,
     conversionFactor,
+    totalWeightedDrain,
     medianDrain: median(runs.map((run) => run.usage_delta)),
     p90Drain: percentile(runs.map((run) => run.usage_delta), 0.9),
     drainCiLow,

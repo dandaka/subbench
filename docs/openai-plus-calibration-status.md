@@ -1,21 +1,22 @@
 # OpenAI Plus DeepSWE calibration status
 
-Last updated: 2026-07-09 (Europe/Lisbon)
+Last updated: 2026-07-10 (Europe/Lisbon)
 
 ## Current state
 
 - Branch: `dev`
 - Workflow commit: `f3f562e`
 - Pier version: `0.3.0`
-- Calibration database: ignored `openai-plus.db`
-- Valid recorded runs: 2 of 8
+- Calibration database: **missing from this workspace**; the two documented runs are not
+  currently reproducible from a local database.
+- Historical runs: non-publishable because per-run isolation evidence was not recorded.
 - Successful runs: 0
 - Failed runs: 2
 - Captured weekly quota drain: 11 percentage points
 - Infrastructure-only attempts remain excluded from the calibration count.
 
-Do not delete, recreate, replace, or commit `openai-plus.db`. It contains the
-authoritative run history.
+If the original `openai-plus.db` is recovered, archive it read-only before migration and
+migrate a copy. Do not infer fresh provenance or publishability from the status notes.
 
 ## Recorded runs
 
@@ -29,8 +30,8 @@ Pier runtime was 23m33s. Immediately after the run, the usage indicators reporte
 42% for the five-hour window and 23% for the weekly window; these values are only
 a timestamped observation and must be checked again before the next run.
 
-The database currently fails `validate` only because two calibration runs are below
-the protocol minimum of five.
+Any recovered database will also fail Tier A validation without per-run isolation,
+paired-snapshot, immutable-manifest, and current protocol evidence.
 
 ## Next session
 
@@ -42,10 +43,11 @@ bun run subbench codex-usage --window session --format json
 bun run subbench codex-usage --window weekly --format json
 ```
 
-When five-hour usage is below 70%, run exactly one next unmeasured task:
+No paid calibration run should start until the Tier A lock manifest, abort/order rule,
+and pilot audit are complete. Every fresh invocation must attest isolation:
 
 ```bash
-bun run calibrate:openai
+bun run calibrate:openai --confirm-isolation "operator name"
 ```
 
 Confirm that Pier graded the task and that a new row was recorded in
@@ -54,7 +56,7 @@ limit events, and aborts. Do not count harness or infrastructure failures as
 calibration runs. Do not start another task if the five-hour window is near its
 limit.
 
-Repeat across five-hour resets until all eight selected tasks are recorded. Then:
+Repeat only under the frozen protocol across the declared order. Then:
 
 ```bash
 bun run subbench --db openai-plus.db validate

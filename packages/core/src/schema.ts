@@ -1,6 +1,12 @@
 export const schema = `
 PRAGMA foreign_keys = ON;
 
+CREATE TABLE IF NOT EXISTS schema_metadata (
+  id INTEGER PRIMARY KEY CHECK(id = 1), schema_version INTEGER NOT NULL,
+  protocol_version TEXT NOT NULL, methodology_version TEXT NOT NULL,
+  migrated_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS providers (
   id INTEGER PRIMARY KEY, slug TEXT NOT NULL UNIQUE, name TEXT NOT NULL
 );
@@ -32,6 +38,29 @@ CREATE TABLE IF NOT EXISTS task_costs (
   artifact_sha256 TEXT,
   UNIQUE(benchmark_source_id, provider_id, model, model_version)
 );
+CREATE TABLE IF NOT EXISTS task_manifests (
+  id INTEGER PRIMARY KEY,
+  slug TEXT NOT NULL UNIQUE,
+  manifest_sha256 TEXT NOT NULL CHECK(length(manifest_sha256)=64),
+  benchmark_source_id INTEGER NOT NULL REFERENCES benchmark_sources(id),
+  target_population TEXT NOT NULL,
+  weighting TEXT NOT NULL,
+  order_seed TEXT NOT NULL,
+  abort_rule TEXT NOT NULL,
+  deepswe_commit TEXT NOT NULL,
+  verifier_version TEXT NOT NULL,
+  image_digest TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS task_manifest_entries (
+  id INTEGER PRIMARY KEY,
+  manifest_id INTEGER NOT NULL REFERENCES task_manifests(id) ON DELETE CASCADE,
+  task_id TEXT NOT NULL,
+  base_commit TEXT NOT NULL,
+  weight REAL NOT NULL DEFAULT 1 CHECK(weight > 0),
+  expected_repetitions INTEGER NOT NULL DEFAULT 1 CHECK(expected_repetitions > 0),
+  UNIQUE(manifest_id, task_id)
+);
 CREATE TABLE IF NOT EXISTS subscription_measurements (
   id INTEGER PRIMARY KEY,
   plan_id INTEGER NOT NULL REFERENCES plans(id),
@@ -39,6 +68,7 @@ CREATE TABLE IF NOT EXISTS subscription_measurements (
   -- NULL is permitted only together with a non-null economics_gap (no compatible
   -- published economics; the study ships with svi computed but no API comparison).
   task_cost_ref INTEGER REFERENCES task_costs(id),
+  task_manifest_ref INTEGER REFERENCES task_manifests(id),
   economics_gap TEXT,
   model TEXT NOT NULL, model_version TEXT NOT NULL DEFAULT '',
   product_surface TEXT NOT NULL, product_version TEXT NOT NULL,
@@ -78,6 +108,8 @@ CREATE TABLE IF NOT EXISTS runs (
   -- D4: how the drain was evidenced. 'manual' (hand-entered numbers) is non-publishable.
   evidence_kind TEXT NOT NULL DEFAULT 'manual'
     CHECK(evidence_kind IN ('paired-snapshots','manual')),
+  isolation_confirmed_at TEXT, isolation_confirmed_by TEXT,
+  isolation_checklist_version TEXT,
   notes TEXT, CHECK(ended_at >= started_at)
 );
 CREATE TABLE IF NOT EXISTS usage_snapshots (
@@ -129,6 +161,7 @@ CREATE INDEX IF NOT EXISTS task_costs_model_idx ON task_costs(provider_id, model
 const migrations: Array<{ table: string; column: string; definition: string }> = [
   { table: "task_costs", column: "artifact_sha256", definition: "TEXT" },
   { table: "subscription_measurements", column: "task_cost_ref", definition: "INTEGER REFERENCES task_costs(id)" },
+  { table: "subscription_measurements", column: "task_manifest_ref", definition: "INTEGER REFERENCES task_manifests(id)" },
   { table: "subscription_measurements", column: "economics_gap", definition: "TEXT" },
   { table: "subscription_measurements", column: "quota_window_days", definition: "INTEGER" },
   { table: "subscription_measurements", column: "isolation_confirmed_at", definition: "TEXT" },
@@ -136,7 +169,14 @@ const migrations: Array<{ table: string; column: string; definition: string }> =
   { table: "subscription_measurements", column: "environment_id", definition: "TEXT" },
   { table: "subscription_measurements", column: "publishable", definition: "INTEGER NOT NULL DEFAULT 1" },
   { table: "runs", column: "evidence_kind", definition: "TEXT NOT NULL DEFAULT 'manual'" },
+  { table: "runs", column: "isolation_confirmed_at", definition: "TEXT" },
+  { table: "runs", column: "isolation_confirmed_by", definition: "TEXT" },
+  { table: "runs", column: "isolation_checklist_version", definition: "TEXT" },
 ];
+
+export const SCHEMA_VERSION = 2;
+export const PROTOCOL_VERSION = "v1-2026-07-10";
+export const METHODOLOGY_VERSION = "tier-a-2026-07-10";
 
 interface Migratable {
   query(sql: string): { all(): Array<{ name: string }> };
@@ -153,4 +193,19 @@ export function migrate(db: Migratable): void {
     if (columns.some((row) => row.name === column)) continue;
     db.run(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
   }
+  db.run(
+    `INSERT OR REPLACE INTO schema_metadata(id,schema_version,protocol_version,methodology_version,migrated_at)
+     VALUES(1,${SCHEMA_VERSION},'${PROTOCOL_VERSION}','${METHODOLOGY_VERSION}',datetime('now'))`,
+  );
+  // A migration must never manufacture provenance. Historical rows that lack the v2
+  // per-run attestation/snapshot evidence are retained for debugging but cannot become
+  // publishable merely because the new columns now exist.
+  db.run(
+    `UPDATE subscription_measurements SET publishable=0
+     WHERE EXISTS (
+       SELECT 1 FROM runs r WHERE r.measurement_id=subscription_measurements.id
+       AND (r.isolation_confirmed_at IS NULL OR r.isolation_confirmed_by IS NULL
+            OR (SELECT COUNT(*) FROM usage_snapshots s WHERE s.run_id=r.id) != 2)
+     )`,
+  );
 }

@@ -32,12 +32,19 @@ describe("v1 analysis", () => {
     expect(result.windowPrice).toBeCloseTo(20 * 7 / 30);
     // native success rate = 4/5
     expect(result.nativeSuccessRate).toBeCloseTo(0.8);
-    // native tasks/window = 100 / (2*4.5) * 0.8 = 100/9 * 0.8
-    expect(result.nativeTasksPerWindow).toBeCloseTo(100 / 9 * 0.8);
+    // primary uses all drain, including the failure: 100 * 4 / (8+9+10+9+8)
+    expect(result.nativeTasksPerWindow).toBeCloseTo(100 * 4 / 44);
     // SVI = nativeTasksPerWindow / windowPrice
-    expect(result.subscriptionValueIndex).toBeCloseTo((100 / 9 * 0.8) / (20 * 7 / 30));
+    expect(result.subscriptionValueIndex).toBeCloseTo((100 * 4 / 44) / (20 * 7 / 30));
     // secondary metric still uses published pass@1
     expect(result.benchmarkEquivalentTasksPerWindow).toBeCloseTo(100 / 9 * 0.6);
+  });
+
+  test("expensive failures lower the total-drain primary estimate", () => {
+    const cheapFailure = calculate({ ...base, runs: [run(8), run(8), run(8), run(8), run(1, 0)] });
+    const expensiveFailure = calculate({ ...base, runs: [run(8), run(8), run(8), run(8), run(24, 0)] });
+    expect(expensiveFailure.nativeTasksPerWindow).toBeLessThan(cheapFailure.nativeTasksPerWindow);
+    expect(expensiveFailure.totalWeightedDrain).toBe(56);
   });
 
   test("all-failure runs yield a native SVI of 0", () => {
@@ -51,6 +58,7 @@ describe("v1 analysis", () => {
     expect(result.subscriptionValueIndex).toBe(0);
     // upper Wilson bound stays positive so the interval is honestly wide
     expect(result.successCiHigh).toBeGreaterThan(0);
+    expect(result.subscriptionValueIndexCiHigh).toBeGreaterThan(0);
     // benchmark-equivalent secondary is unaffected by native failures
     expect(result.benchmarkEquivalentTasksPerWindow).toBeGreaterThan(0);
   });

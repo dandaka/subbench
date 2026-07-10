@@ -8,6 +8,10 @@ export interface CalibrationRun extends DatabaseRow {
   promotion: number;
   started_at: string;
   ended_at: string;
+  /** Optional frozen-manifest weight; Tier A defaults to one. */
+  task_weight?: number;
+  /** Repeated attempts are resampled as a task cluster when supplied. */
+  task_id?: string;
 }
 
 export interface AnalysisInput {
@@ -43,14 +47,16 @@ export interface Result {
   nativeSuccessRate: number;
   successCiLow: number;
   successCiHigh: number;
+  /** Diagnostic only: median drain per attempt. */
   conversionFactor: number;
+  totalWeightedDrain: number;
   medianDrain: number;
   p90Drain: number;
   drainCiLow: number;
   drainCiHigh: number;
   /** Price of the plan prorated into one quota window. */
   windowPrice: number;
-  /** PRIMARY estimand: native successful tasks per quota window. */
+  /** PRIMARY estimand: capacity × weighted successes / weighted all-attempt drain. */
   nativeTasksPerWindow: number;
   nativeTasksCiLow: number;
   nativeTasksCiHigh: number;
@@ -97,5 +103,8 @@ export interface ReportRecord extends Record<string, string | number | boolean |
   api_value_multiple: number | null;
   break_even_tasks: number | null;
   economics_gap: string | null;
+  task_manifest: string | null;
+  target_population: string | null;
+  estimand_version: string;
   window: string;
 }

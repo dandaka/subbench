@@ -62,14 +62,14 @@ export function collectIssues(db: Database): ValidationIssue[] {
     issues.push(hard(row.measurement_id, `measurement ${row.measurement_id} mixes harness environments`));
   }
 
-  // D4: isolation attestation must be present on publishable studies.
-  const attestation = db.query<{ id: number }, []>(
-    `SELECT id FROM subscription_measurements
+  // Per-run isolation, not a measurement-level summary, is the required evidence.
+  const attestation = db.query<{ measurement_id: number }, []>(
+    `SELECT DISTINCT measurement_id FROM runs
      WHERE isolation_confirmed_at IS NULL OR isolation_confirmed_at=''
         OR isolation_confirmed_by IS NULL OR isolation_confirmed_by=''`,
   ).all();
   for (const row of attestation) {
-    issues.push(publishability(row.id, `measurement ${row.id} has no isolation attestation (isolation_confirmed_at/by)`));
+    issues.push(publishability(row.measurement_id, `measurement ${row.measurement_id} has a run with no per-run isolation attestation`));
   }
 
   // D4: every run on a publishable measurement must carry paired-snapshot evidence.
@@ -84,10 +84,13 @@ export function collectIssues(db: Database): ValidationIssue[] {
   const partial = db.query<{ measurement_id: number }, []>(
     `SELECT DISTINCT r.measurement_id
      FROM runs r
-     WHERE (SELECT COUNT(*) FROM usage_snapshots s WHERE s.run_id=r.id) = 1`,
+     WHERE (SELECT COUNT(*) FROM usage_snapshots s WHERE s.run_id=r.id) != 2
+        OR (SELECT COUNT(*) FROM usage_snapshots s WHERE s.run_id=r.id AND s.position='pre') != 1
+        OR (SELECT COUNT(*) FROM usage_snapshots s WHERE s.run_id=r.id AND s.position='post') != 1
+        OR r.evidence_kind != 'paired-snapshots'`,
   ).all();
   for (const row of partial) {
-    issues.push(publishability(row.measurement_id, `measurement ${row.measurement_id} has runs with an unpaired usage snapshot`));
+    issues.push(publishability(row.measurement_id, `measurement ${row.measurement_id} has runs without exactly one pre and post usage snapshot`));
   }
 
   // D1/D4: a publishable study needs a named quota window and a capacity grade better
@@ -103,6 +106,43 @@ export function collectIssues(db: Database): ValidationIssue[] {
   ).all();
   for (const row of grade) {
     issues.push(publishability(row.id, `measurement ${row.id} has grade 'unknown' capacity; not publishable`));
+  }
+
+  // A Tier A cell is bound to one immutable fixed-set manifest; every run must be a
+  // declared member. Non-publishable historical/template rows may intentionally lack it.
+  const manifests = db.query<{ id: number }, []>(
+    "SELECT id FROM subscription_measurements WHERE task_manifest_ref IS NULL",
+  ).all();
+  for (const row of manifests) {
+    issues.push(publishability(row.id, `measurement ${row.id} has no immutable task manifest binding`));
+  }
+  const outOfManifest = db.query<{ measurement_id: number }, []>(
+    `SELECT DISTINCT r.measurement_id FROM runs r
+     JOIN subscription_measurements sm ON sm.id=r.measurement_id
+     WHERE sm.task_manifest_ref IS NOT NULL
+       AND NOT EXISTS (SELECT 1 FROM task_manifest_entries e
+                       WHERE e.manifest_id=sm.task_manifest_ref AND e.task_id=r.task_id)`,
+  ).all();
+  for (const row of outOfManifest) {
+    issues.push(publishability(row.measurement_id, `measurement ${row.measurement_id} has a task outside its bound manifest`));
+  }
+  const incompleteManifest = db.query<{ measurement_id: number }, []>(
+    `SELECT sm.id measurement_id FROM subscription_measurements sm
+     JOIN task_manifest_entries e ON e.manifest_id=sm.task_manifest_ref
+     LEFT JOIN runs r ON r.measurement_id=sm.id AND r.task_id=e.task_id
+     GROUP BY sm.id,e.id,e.expected_repetitions
+     HAVING COUNT(r.id) != e.expected_repetitions`,
+  ).all();
+  for (const row of incompleteManifest) {
+    issues.push(publishability(row.measurement_id, `measurement ${row.measurement_id} does not satisfy manifest task repetitions`));
+  }
+  const weakLock = db.query<{ id: number }, []>(
+    `SELECT id FROM task_manifests WHERE length(manifest_sha256) != 64
+       OR length(deepswe_commit) != 40
+       OR image_digest NOT GLOB 'sha256:[0-9a-fA-F]*' OR length(image_digest) != 71`,
+  ).all();
+  for (const row of weakLock) {
+    issues.push(hard(null, `task manifest ${row.id} has invalid immutable lock material`));
   }
 
   // D3: every measurement resolves to exactly one economics record, or names a gap.

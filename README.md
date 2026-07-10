@@ -1,6 +1,6 @@
 # SubBench
 
-SubBench is an experimental benchmark for measuring AI coding subscription value per developer dollar.
+SubBench is developing a calibration framework; subscription value has not yet been measured.
 
 Most public comparisons answer one of two questions:
 
@@ -11,14 +11,14 @@ SubBench focuses on the missing third question:
 
 > How much successful developer work does a flat-rate AI subscription actually buy?
 
-The goal is to compare plans such as Claude, OpenAI, and Z.ai using measured task outcomes, observed subscription capacity, and published or reproduced cost-per-task data.
+The goal is to support a future fixed-set comparison using measured task outcomes, observed subscription capacity, and compatible benchmark economics. It does not currently support a provider ranking.
 
 ## Core Idea
 
 ```text
 subscription value =
   observed subscription capacity
-  / cost per successful benchmark task
+  × successful tasks / all observed quota drain
 ```
 
 For developer-facing comparisons:
@@ -41,9 +41,9 @@ developer value per dollar =
    attempts remain in the data because they consume quota.
 4. Measure usable quota capacity in its native weekly or monthly window and
    prorate the subscription price to that same window.
-5. Join observed quota drain and native success rate to published benchmark task
-   economics. This produces the primary result: estimated successful native tasks
-   per quota window and the Subscription Value Index (tasks per window-dollar).
+5. Calculate the primary result directly from observed drain: capacity × successful
+   tasks / all observed quota drain. This produces native tasks per quota window and
+   the Subscription Value Index (tasks per window-dollar).
 6. Separately, use published pass@1 to calculate benchmark-equivalent throughput,
    API cost per success, and the subscription/API break-even point.
 
@@ -60,9 +60,9 @@ Each cell needs at least **5 valid task runs** to be publishable. The target is
 flagship model therefore needs about **16 task attempts**, plus capacity
 observations.
 
-Results support a scoped decision: which plan delivered more successful developer
-work per dollar for this workload, model, product surface, and measurement period.
-They are not a universal provider ranking. Reports show the sample size, median and
+Until Tier A validation passes for at least two comparable cells, reports are methods or
+diagnostic outputs only. A later Tier A result applies only to its frozen calibration set;
+it is not a universal provider ranking. Reports show the sample size, median and
 p90 drain, measurement grade, and bootstrap interval; with only 5–10 runs, wide
 intervals are expected, particularly when the usage meter is rounded or quota drain
 is heavy-tailed.
@@ -80,9 +80,8 @@ Those claims may be true for a given workflow, but they are usually not backed b
 
 ## Project Status
 
-V1 is implemented as a Bun workspace monorepo using TypeScript 7. It imports published task economics,
-captures subscription calibration runs, validates the measurement protocol, calculates
-confidence-aware value metrics, and exports publication-ready reports.
+V1 is implemented as a Bun workspace monorepo using TypeScript 7. It captures calibration
+runs and validates evidence, but current historical data and examples are non-publishable.
 
 ## Quick Start
 
@@ -108,6 +107,7 @@ bun run subbench --db study.db run \
   --measurement-id 1 --benchmark-source-id 1 \
   --task-id task-001 --environment clean-image-sha256 \
   --pre-usage 12 --post-usage 18 --api-cost 1.42 \
+  --confirm-isolation "operator name" \
   -- your-test-command
 ```
 

@@ -205,6 +205,9 @@ try {
     aborted: exitCode === 0 ? 0 : 1,
     peak_hours: 0,
     promotion: 0,
+    isolation_confirmed_at: new Date().toISOString(),
+    isolation_confirmed_by: isolationOperator,
+    isolation_checklist_version: "v1-2026-07-10",
     notes: `Pier job ${jobName}; exit ${exitCode}`,
   });
   // D4: persist paired pre/post snapshots so the run carries publishable evidence,

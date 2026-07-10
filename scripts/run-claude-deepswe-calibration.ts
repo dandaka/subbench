@@ -19,10 +19,11 @@ interface SelectedTask {
   model_costs?: Record<string, number>;
 }
 
-// The api-equivalent cost of a task must use the bound model's economics, not a
-// cross-model aggregate. Falls back to the aggregate only if the per-model cost is absent.
+// The API comparison must use the bound model's economics, never a cross-model fallback.
 function apiEquivalentUsd(task: SelectedTask, model: string): number {
-  return task.model_costs?.[model] ?? task.avg_cost_usd;
+  const cost = task.model_costs?.[model];
+  if (!(cost && cost > 0)) throw new Error(`economics gap: no compatible per-task cost for ${model}`);
+  return cost;
 }
 
 interface Selection {
@@ -273,6 +274,9 @@ try {
     aborted: exitCode === 0 ? 0 : 1,
     peak_hours: 0,
     promotion: 0,
+    isolation_confirmed_at: new Date().toISOString(),
+    isolation_confirmed_by: isolationOperator,
+    isolation_checklist_version: "v1-2026-07-10",
     notes: `Pier job ${jobName}; native ${model}; exit ${exitCode}`,
   });
   try {

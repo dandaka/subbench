@@ -26,11 +26,12 @@ describe("database pipeline", () => {
     try {
       const counts = loadBundle(db, resolve("examples/synthetic.json"));
       expect(counts.runs).toBe(5);
-      expect(validateDatabase(db)).toEqual([]);
+      expect(validateDatabase(db).some((issue) => issue.includes("usage snapshot"))).toBe(true);
       const records = analyzeDatabase(db);
       expect(records).toHaveLength(1);
       expect(records[0]?.provider).toBe("example-ai");
-      expect(renderMarkdown(records)).toContain("SubBench V1 Results");
+      expect(records[0]?.publishable).toBe(false);
+      expect(renderMarkdown(records)).toContain("Non-generalization warning");
       expect(db.query("SELECT * FROM results").all()).toHaveLength(1);
     } finally {
       db.close();

@@ -21,8 +21,8 @@ Two estimands are reported, named honestly:
 ```text
 # PRIMARY (native): what goal.md promises — successful developer work.
 native tasks per window =
-  observed capacity / (published avg cost per task × conversion factor)
-  × native_success_rate            # successCount / runCount, Wilson interval
+  observed capacity × sum(task weight × success)
+  / sum(task weight × observed quota drain)
 
 Subscription Value Index (SVI) =
   native tasks per window / window_price
@@ -35,8 +35,9 @@ benchmark-equivalent tasks per window =
   × published pass@1
 ```
 
-The primary metric uses the **native** success rate from the calibration runs (five
-failures give an SVI point estimate of 0 with a wide upper bound — honest, not a bug). The
+The primary metric uses **all observed native drain** from the calibration runs (five
+failures give an SVI point estimate of 0 with a positive upper sensitivity bound — honest,
+not a bug). The
 secondary metric uses published pass@1 because the API comparison
 (`api cost per success = avg cost / pass@1`) must be internally consistent with it. When
 no compatible published economics exist, the secondary metric and API comparison are
@@ -53,21 +54,18 @@ units.
 1. Adopt one published benchmark as the task-economics source (see Task Cost Sources).
    It supplies pass@1, avg cost per task, and output tokens per model.
 2. Build a drain-tracking harness: for each (provider, plan, model, product surface),
-   run a small calibration workload (~5-10 tasks) through the subscription product,
-   recording usage indicators before and after each task. This yields a conversion
-   factor: subscription-quota drain per API-equivalent dollar.
+   run the frozen workload through the subscription product, recording paired usage
+   snapshots before and after each task.
 3. Measure total usable capacity per billing period via the same usage indicators
    (and depletion experiments where indicators are too coarse).
-4. Native tasks per window = capacity ÷ (published cost per task × conversion factor) ×
-   native success rate, with failed-attempt drain accounted per the Cost Accounting Rule.
+4. Native tasks per window = capacity × weighted successful tasks ÷ weighted all-attempt
+   quota drain, with failed-attempt drain accounted per the Cost Accounting Rule.
    The benchmark-equivalent secondary metric substitutes published pass@1 for the native
    rate and is reported only as the API-comparison anchor.
-5. Publish measurement grade and statistical confidence for every estimate. Uncertainty is
-   a joint bootstrap over calibration runs — each resample recomputes (median drain factor
-   × success-indicator mean) together, so drain and success uncertainty compound — plus a
-   fixed sensitivity widening for meter rounding and capacity grade. Label it "bootstrap
-   interval over calibration runs", not a blanket 95% CI. At n=5–10 the native interval is
-   wide; that is a feature. Widen the run count if it is too wide to publish.
+5. Publish measurement grade and uncertainty for every estimate. Resampling preserves
+   task-clustered outcome/drain pairs; a Wilson envelope prevents an all-failure interval
+   from degenerating to zero. Label it an "uncertainty/sensitivity interval for fixed runs",
+   not a blanket 95% CI, until its coverage and meter-error model are established.
 
 ### Harness Mismatch Disclaimer
 

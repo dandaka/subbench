@@ -8,6 +8,7 @@ import {
   insertRun,
   insertUsageSnapshots,
   loadBundle,
+  migrate,
   openDatabase,
   renderCsv,
   renderJson,
@@ -68,7 +69,7 @@ function collectUsage(provider: UsageProvider): Promise<UsageSnapshot> {
 
 function usage(): never {
   fail(
-    "usage: subbench [--db path] <init|load|validate|analyze|run|usage|codex-usage> [options]",
+    "usage: subbench [--db path] <init|migrate|load|validate|analyze|run|usage|codex-usage> [options]",
   );
 }
 
@@ -122,6 +123,17 @@ async function main(): Promise<void> {
       console.log(JSON.stringify(loadBundle(db, path)));
       return;
     }
+    if (command === "migrate") {
+      const dryRun = flag(args, "--dry-run");
+      if (args.length > 0) fail(`unknown options: ${args.join(" ")}`);
+      if (dryRun) {
+        console.log("migration required: schema v2; rerun without --dry-run to apply (migrate a copy first)");
+      } else {
+        migrate(db);
+        console.log("migrated to schema v2; historical rows remain non-publishable until new evidence is collected");
+      }
+      return;
+    }
     if (command === "validate") {
       const issues = validateDatabase(db);
       if (issues.length > 0) fail(issues.join("\n"), 1);
@@ -171,8 +183,8 @@ async function main(): Promise<void> {
       const usageWindow = (option(args, "--usage-window") ?? "weekly") as UsageWindowKind;
       const explicitPre = option(args, "--pre-usage");
       const explicitPost = option(args, "--post-usage");
-      if (usageProvider && !["codex", "zai"].includes(usageProvider)) {
-        fail("--usage-provider must be codex or zai");
+      if (usageProvider && !["codex", "zai", "claude"].includes(usageProvider)) {
+        fail("--usage-provider must be codex, zai, or claude");
       }
       if (usageProvider && usageCommand) fail("--usage-provider cannot be combined with --usage-command");
       if (usageProvider && (explicitPre !== undefined || explicitPost !== undefined)) {
@@ -190,6 +202,7 @@ async function main(): Promise<void> {
       const peakHours = flag(args, "--peak-hours");
       const promotion = flag(args, "--promotion");
       const notes = option(args, "--notes") ?? "";
+      const isolationBy = option(args, "--confirm-isolation", true)!;
       if (args.length > 0) fail(`unknown options: ${args.join(" ")}`);
 
       const preSnapshot = usageProvider ? await collectUsage(usageProvider) : undefined;
@@ -235,6 +248,9 @@ async function main(): Promise<void> {
         // the run to 'paired-snapshots' via insertUsageSnapshots below.
         evidence_kind: (preSnapshot && postSnapshot) ? "paired-snapshots" : "manual",
         notes,
+        isolation_confirmed_at: new Date().toISOString(),
+        isolation_confirmed_by: isolationBy,
+        isolation_checklist_version: "v1-2026-07-10",
       });
       if (preSnapshot && postSnapshot) {
         try {

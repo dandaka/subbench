@@ -78,6 +78,9 @@ export function insertRun(db: Database, row: JsonRow): number {
   }
   const preUsage = number(row, "pre_usage");
   const postUsage = number(row, "post_usage");
+  if (postUsage < preUsage) {
+    throw new Error("usage meter decreased; record reset/rolling-window evidence instead of absolute drain");
+  }
   const evidenceKind = typeof row.evidence_kind === "string" ? row.evidence_kind : "manual";
   if (evidenceKind !== "manual" && evidenceKind !== "paired-snapshots") {
     throw new Error(`evidence_kind must be 'manual' or 'paired-snapshots', got ${evidenceKind}`);
@@ -87,14 +90,17 @@ export function insertRun(db: Database, row: JsonRow): number {
       measurement_id,benchmark_source_id,task_id,harness_environment_id,started_at,
       ended_at,pre_usage,post_usage,usage_delta,api_equivalent_usd,success,retries,
       limit_event,aborted,peak_hours,promotion,evidence_kind,notes
-    ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      ,isolation_confirmed_at,isolation_confirmed_by,isolation_checklist_version
+    ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
     [
       measurementId, benchmarkSourceId, text(row, "task_id"),
       text(row, "harness_environment_id"), text(row, "started_at"), text(row, "ended_at"),
-      preUsage, postUsage, Math.abs(postUsage - preUsage), number(row, "api_equivalent_usd"),
+      preUsage, postUsage, postUsage - preUsage, number(row, "api_equivalent_usd"),
       number(row, "success"), number(row, "retries", 0), number(row, "limit_event", 0),
       number(row, "aborted", 0), number(row, "peak_hours", 0),
       number(row, "promotion", 0), evidenceKind, nullable(row, "notes"),
+      nullable(row, "isolation_confirmed_at"), nullable(row, "isolation_confirmed_by"),
+      nullable(row, "isolation_checklist_version"),
     ],
   );
   return Number(db.query<{ id: number }, []>("SELECT last_insert_rowid() id").get()!.id);
@@ -236,6 +242,27 @@ export function loadBundle(db: Database, path: string): Record<string, number> {
         ],
       );
     }
+    for (const row of payload.task_manifests ?? []) {
+      const sourceId = identifier(db, "SELECT id FROM benchmark_sources WHERE slug=?", [text(row, "benchmark_source")]);
+      db.run(
+        `INSERT OR REPLACE INTO task_manifests(slug,manifest_sha256,benchmark_source_id,target_population,
+          weighting,order_seed,abort_rule,deepswe_commit,verifier_version,image_digest,created_at)
+         VALUES(?,?,?,?,?,?,?,?,?,?,?)`,
+        [text(row, "slug"), text(row, "manifest_sha256"), sourceId, text(row, "target_population"),
+          text(row, "weighting"), text(row, "order_seed"), text(row, "abort_rule"),
+          text(row, "deepswe_commit"), text(row, "verifier_version"), text(row, "image_digest"),
+          text(row, "created_at")],
+      );
+    }
+    for (const row of payload.task_manifest_entries ?? []) {
+      const manifestId = identifier(db, "SELECT id FROM task_manifests WHERE slug=?", [text(row, "manifest")]);
+      db.run(
+        `INSERT OR REPLACE INTO task_manifest_entries(manifest_id,task_id,base_commit,weight,expected_repetitions)
+         VALUES(?,?,?,?,?)`,
+        [manifestId, text(row, "task_id"), text(row, "base_commit"), number(row, "weight", 1),
+          number(row, "expected_repetitions", 1)],
+      );
+    }
     for (const row of payload.subscription_measurements ?? []) {
       const providerId = identifier(
         db, "SELECT id FROM providers WHERE slug=?", [text(row, "provider")],
@@ -249,6 +276,7 @@ export function loadBundle(db: Database, path: string): Record<string, number> {
       const economicsModel = row.task_cost_model;
       const economicsGap = nullable(row, "economics_gap");
       let taskCostRef: number | null = null;
+      let taskManifestRef: number | null = null;
       if (typeof economicsModel === "string") {
         taskCostRef = identifier(
           db,
@@ -261,15 +289,18 @@ export function loadBundle(db: Database, path: string): Record<string, number> {
           `subscription measurement for ${text(row, "model")} needs task_cost_model or economics_gap`,
         );
       }
+      if (typeof row.task_manifest === "string") {
+        taskManifestRef = identifier(db, "SELECT id FROM task_manifests WHERE slug=?", [row.task_manifest]);
+      }
       db.run(
         `INSERT OR REPLACE INTO subscription_measurements(
-          plan_id,task_cost_ref,economics_gap,model,model_version,product_surface,
+          plan_id,task_cost_ref,task_manifest_ref,economics_gap,model,model_version,product_surface,
           product_version,measurement_start,measurement_end,quota_capacity,quota_unit,
           quota_window_days,measurement_grade,confidence_level,peak_hours,promotion,
           isolation_confirmed_at,isolation_confirmed_by,environment_id,publishable,conditions
-        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
         [
-          planId, taskCostRef, economicsGap, text(row, "model"), text(row, "model_version"),
+          planId, taskCostRef, taskManifestRef, economicsGap, text(row, "model"), text(row, "model_version"),
           text(row, "product_surface"), text(row, "product_version"),
           text(row, "measurement_start"), text(row, "measurement_end"),
           number(row, "quota_capacity"), text(row, "quota_unit"),
@@ -282,12 +313,41 @@ export function loadBundle(db: Database, path: string): Record<string, number> {
       );
     }
     for (const row of payload.runs ?? []) insertRun(db, row);
+    // Bundles may supply evidence as normalized, flat rows keyed by run_task_id.  Evidence
+    // is imported in the same transaction as runs; a claimed paired label without exactly
+    // one pre/post row will still fail validation rather than being trusted.
+    for (const row of payload.usage_snapshots ?? []) {
+      const runId = identifier(db, "SELECT id FROM runs WHERE task_id=?", [text(row, "run_task_id")]);
+      db.run(
+        `INSERT INTO usage_snapshots(run_id,position,provider,account_id_hash,plan,captured_at,
+          collector_name,collector_version,authority,precision,cached,endpoint,raw_json,normalized_json)
+         VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        [runId, text(row, "position"), text(row, "provider"), nullable(row, "account_id_hash"),
+          nullable(row, "plan"), text(row, "captured_at"), text(row, "collector_name"),
+          text(row, "collector_version"), text(row, "authority"), text(row, "precision"),
+          number(row, "cached"), text(row, "endpoint"), text(row, "raw_json"), text(row, "normalized_json")],
+      );
+    }
+    for (const row of payload.usage_snapshot_windows ?? []) {
+      const snapshotId = identifier(
+        db,
+        `SELECT s.id FROM usage_snapshots s JOIN runs r ON r.id=s.run_id
+         WHERE r.task_id=? AND s.position=?`,
+        [text(row, "run_task_id"), text(row, "position")],
+      );
+      db.run(
+        `INSERT INTO usage_snapshot_windows(snapshot_id,kind,used_percent,resets_at,duration_minutes,provider_type,provider_unit)
+         VALUES(?,?,?,?,?,?,?)`,
+        [snapshotId, text(row, "kind"), number(row, "used_percent"), nullable(row, "resets_at"),
+          nullable(row, "duration_minutes"), nullable(row, "provider_type"), nullable(row, "provider_unit")],
+      );
+    }
   });
   transaction();
   return Object.fromEntries(
     [
       "providers", "plans", "benchmark_sources", "task_costs",
-      "subscription_measurements", "runs",
+      "task_manifests", "task_manifest_entries", "subscription_measurements", "runs",
     ].map((key) => [key, payload[key]?.length ?? 0]),
   );
 }
@@ -313,6 +373,8 @@ interface Cell {
   publishable: number;
   measurement_start: string;
   measurement_end: string;
+  task_manifest: string | null;
+  target_population: string | null;
 }
 
 function resultParams(cell: Cell, result: Result, publishable: boolean): (string | number | null)[] {
@@ -369,11 +431,13 @@ export function analyze(db: Database, force = false): AnalysisReport {
 
   const cells = db.query<Cell, []>(
     `SELECT sm.*, p.price, p.billing_days, p.slug plan, pr.slug provider,
-      tc.id task_cost_id, tc.avg_cost_usd, tc.pass_at_1
+      tc.id task_cost_id, tc.avg_cost_usd, tc.pass_at_1,
+      tm.slug task_manifest, tm.target_population
      FROM subscription_measurements sm
      JOIN plans p ON p.id=sm.plan_id
      JOIN providers pr ON pr.id=p.provider_id
      LEFT JOIN task_costs tc ON tc.id=sm.task_cost_ref
+     LEFT JOIN task_manifests tm ON tm.id=sm.task_manifest_ref
      ORDER BY pr.slug,p.slug,sm.model,sm.promotion`,
   ).all();
   const records: ReportRecord[] = [];
@@ -412,8 +476,13 @@ export function analyze(db: Database, force = false): AnalysisReport {
         measurementGrade: cell.measurement_grade,
         confidence: cell.confidence_level,
       });
+      // SQLite UNIQUE permits multiple NULLs. Remove the prior row explicitly so repeated
+      // analyses of an economics-gap cell are idempotent as well.
+      db.run("DELETE FROM results WHERE measurement_id=? AND task_cost_id IS ?", [
+        cell.id, cell.task_cost_id,
+      ]);
       db.run(
-        `INSERT OR REPLACE INTO results(
+        `INSERT INTO results(
           measurement_id,task_cost_id,computed_at,run_count,success_count,
           native_success_rate,success_ci_low,success_ci_high,conversion_factor,
           median_drain,p90_drain,drain_ci_low,drain_ci_high,window_price,
@@ -454,6 +523,9 @@ export function analyze(db: Database, force = false): AnalysisReport {
         break_even_tasks:
           result.breakEvenTasks === null ? null : round(result.breakEvenTasks, 2),
         economics_gap: result.economicsGap,
+        task_manifest: cell.task_manifest,
+        target_population: cell.target_population,
+        estimand_version: "tier-a-native-total-drain-v1",
         window: `${cell.measurement_start}/${cell.measurement_end}`,
       });
     }

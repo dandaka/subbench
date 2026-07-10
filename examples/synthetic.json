@@ -62,8 +62,8 @@
       "isolation_confirmed_at": "2026-07-01T09:55:00Z",
       "isolation_confirmed_by": "synthetic-operator",
       "environment_id": "clean-demo-v1",
-      "publishable": 1,
-      "conditions": "Synthetic example"
+      "publishable": 0,
+      "conditions": "Synthetic template — non-publishable"
     }
   ],
   "runs": [
@@ -114,4 +114,3 @@
     }
   ]
 }
-

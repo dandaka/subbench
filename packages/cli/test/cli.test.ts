@@ -19,7 +19,7 @@ async function execute(args: string[]): Promise<{ output: string; error: string;
 }
 
 describe("CLI", () => {
-  test("analyzes a clean bundle and reports one result", async () => {
+  test("analyzes a synthetic non-publishable template", async () => {
     const directory = mkdtempSync(join(tmpdir(), "subbench-cli-"));
     directories.push(directory);
     const database = join(directory, "study.db");
@@ -27,12 +27,12 @@ describe("CLI", () => {
     expect((await execute([
       "--db", database, "load", resolve("examples/synthetic.json"),
     ])).status).toBe(0);
-    expect((await execute(["--db", database, "validate"])).status).toBe(0);
+    expect((await execute(["--db", database, "validate"])).status).toBe(1);
     const analyzed = await execute(["--db", database, "analyze", "--format", "json"]);
     expect(analyzed.status).toBe(0);
     const records = JSON.parse(analyzed.output);
     expect(records).toHaveLength(1);
-    expect(records[0].publishable).toBe(true);
+    expect(records[0].publishable).toBe(false);
   });
 
   test("a manual run makes the study non-publishable and fails closed", async () => {
@@ -50,6 +50,7 @@ describe("CLI", () => {
       "--pre-usage", "45",
       "--post-usage", "53",
       "--api-cost", "2",
+      "--confirm-isolation", "test-operator",
       "--",
       "bun", "-e", "process.exit(0)",
     ]);
@@ -61,12 +62,9 @@ describe("CLI", () => {
     expect(validated.status).toBe(1);
     expect(validated.error).toContain("[publishability]");
 
-    // analyze without --force fails closed on the publishable measurement.
-    const blocked = await execute(["--db", database, "analyze", "--format", "json"]);
-    expect(blocked.status).toBe(1);
-
-    // --force computes but stamps the row non-publishable.
-    const forced = await execute(["--db", database, "analyze", "--format", "json", "--force"]);
+    // The source template was already non-publishable, so diagnostics can be rendered
+    // without --force and remain visibly stamped as such.
+    const forced = await execute(["--db", database, "analyze", "--format", "json"]);
     expect(forced.status).toBe(0);
     const records = JSON.parse(forced.output);
     expect(records).toHaveLength(1);

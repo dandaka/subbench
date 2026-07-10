@@ -3,6 +3,46 @@
 Status: **PROPOSED — two release tiers. Tier A permits an honest comparison only on the
 fixed calibration set; Tier B is required for claims that generalize beyond that set.**
 
+## Implementation status — 2026-07-10
+
+### Completed locally
+
+- [x] Current tracked example/report/README language is non-publishable and carries a
+  fixed-set non-generalization warning.
+- [x] `claude-max.db` and `zai-lite.db` were copied to `data/raw-archive/2026-07-10/`,
+  made read-only, and SHA-256 hashed. Migrated working copies live in
+  `data/migrated-2026-07-10/`; schema migration marks historical rows non-publishable.
+- [x] The missing `openai-plus.db` is disclosed in the status document.
+- [x] Primary native yield now uses weighted successful tasks / weighted total drain;
+  expensive failures affect the result. API multiples use the secondary
+  benchmark-equivalent estimand.
+- [x] Deterministic task-cluster resampling and a zero-success positive upper sensitivity
+  bound are implemented and self-reviewed.
+- [x] Schema v2 metadata, explicit `migrate`, per-run isolation fields, snapshot checks,
+  task-manifest tables, and fail-closed validation are implemented.
+- [x] CLI and calibration runners require an isolation operator and store it per run.
+- [x] Regression, integration, migration-path, and estimator tests pass locally via
+  `bun run check`.
+- [x] Pinned Bun 1.3.14 Tier A check workflow is configured in GitHub Actions.
+
+### Next repository work
+
+- [ ] Replace the current selection output with a checked, immutable DeepSWE lock manifest
+  (source retrieval metadata, artifact hashes, commit, verifier, image digest, order, and
+  abort rule) and make runners verify it before execution.
+- [ ] Complete effort/config-aware DeepSWE importer and locked reproducibility command.
+- [ ] Expand report/CSV/JSON disclosures and comparison compatibility gates; add the
+  cross-source sanity artifact and redaction/freshness checks.
+- [ ] Add real lint/formatter tooling, generated-file freshness checks, and broader Tier B
+  platform coverage.
+
+### External gates — intentionally not marked complete
+
+- [ ] Maintainer completes the frozen lock/order/abort decisions and meter-error model.
+- [ ] Fresh isolated pilot and comparable paid provider cells are collected.
+- [ ] Cache-transfer diagnostic, external/independent recomputation, and Tier B sampling/
+  coverage simulations are performed.
+
 Date: 2026-07-10
 
 This plan supersedes the conclusions and incomplete acceptance criteria in

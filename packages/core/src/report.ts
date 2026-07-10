@@ -6,6 +6,7 @@ const headers = [
   "window_price", "native_tasks_per_window", "native_tasks_ci",
   "benchmark_equivalent_tasks_per_window", "svi", "svi_ci", "api_value_multiple",
   "break_even_tasks", "economics_gap", "window",
+  "task_manifest", "target_population", "estimand_version",
 ] as const;
 
 export function renderJson(records: ReportRecord[]): string {
@@ -29,15 +30,16 @@ export function renderMarkdown(records: ReportRecord[]): string {
   const visible = [
     "provider", "plan", "model", "grade", "publishable", "n", "success_rate",
     "success_ci", "native_tasks_per_window", "svi", "svi_ci", "api_value_multiple",
-    "break_even_tasks",
+    "break_even_tasks", "task_manifest",
   ] as const;
   const lines = [
-    "# SubBench V1 Results",
+    "# SubBench calibration report",
     "",
-    "> Primary metric is native successful tasks per quota window (SVI = native tasks per "
-      + "window per window-dollar). The benchmark-equivalent throughput and API comparison, "
-      + "where shown, use published neutral-harness pass@1 and are reported only as anchors. "
-      + "Native harness outcomes may differ.",
+    "> **Non-generalization warning:** this is a fixed calibration-set report, not a provider "
+      + "ranking and not an estimate of developer work generally. Primary metric: native "
+      + "successful tasks per quota window (SVI = native tasks per window-dollar), using all "
+      + "observed attempt drain. Benchmark-equivalent/API fields, where shown, are separate "
+      + "neutral-harness anchors; native harness outcomes may differ.",
     "",
     `| ${visible.join(" | ")} |`,
     `|${visible.map(() => "---").join("|")}|`,
