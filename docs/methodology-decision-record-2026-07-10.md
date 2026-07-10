@@ -42,5 +42,8 @@ still required per cell.
 - [x] Equal fixed-set weights selected.
 - [x] Every attempt contributes drain.
 - [x] Per-run isolation and paired-snapshot evidence required by code.
-- [ ] Freeze immutable DeepSWE/source/container lock before fresh collection.
-- [ ] Declare reset/meter error model and task order/abort schedule before fresh collection.
+- [x] Freeze immutable DeepSWE/source/container lock before fresh collection
+  (`data/deepswe-v1.1.lock.json`, 2026-07-10).
+- [x] Declare task order (`subbench-tier-a-2026-07-10`) and abort schedule (after three
+  normal tasks, three times median drain). A publishable reset/meter-error model remains
+  required per cell.

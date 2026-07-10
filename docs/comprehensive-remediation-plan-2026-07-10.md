@@ -38,7 +38,10 @@ fixed calibration set; Tier B is required for claims that generalize beyond that
 
 ### External gates — intentionally not marked complete
 
-- [ ] Maintainer completes the frozen lock/order/abort decisions and meter-error model.
+- [x] Maintainer froze the DeepSWE lock, eight-task order seed, abort rule, model/effort
+  mappings, verifier, client versions, and per-task image digests in
+  `data/deepswe-v1.1.lock.json` (2026-07-10). A publishable meter-error model remains
+  an external gate.
 - [ ] Fresh isolated pilot and comparable paid provider cells are collected.
 - [ ] Cache-transfer diagnostic, external/independent recomputation, and Tier B sampling/
   coverage simulations are performed.
