@@ -3,6 +3,15 @@
 This log records durable changes and decisions that affect future work. It is not a
 measurement run log and does not establish publication evidence.
 
+## 2026-07-11 — Add zero-subscription calibration preflight
+
+- Added `bun run preflight:calibration --provider claude|openai|zai`. It performs
+  the selected provider's read-only usage probe and validates the frozen DeepSWE
+  Docker/Pier/agent/verifier lifecycle with Pier's built-in `nop` agent, without
+  injecting provider credentials or calling a model.
+- Documented the required Claude preflight after any harness, runner, Docker, or
+  credential-path change. Preflight artifacts are explicitly non-measurement data.
+
 ## 2026-07-11 — Fix prepare() aborting on a pre-existing shallow DeepSWE clone
 
 - Bug: all three calibration runners cloned DeepSWE only when `.subbench/deep-swe`

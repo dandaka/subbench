@@ -64,6 +64,21 @@ Codex) so this benchmark is the sole consumer of the Max seat. Record the
 confirmation (date, machine, that isolation was verified) in the run log. A run
 without a recorded confirmation is invalid and must be discarded.
 
+## Step 2.5 — Zero-subscription harness preflight (required after harness changes)
+
+Before spending subscription quota after a Docker, Pier, runner, or credential-path
+change, run the shared preflight:
+
+```bash
+bun run preflight:calibration --provider claude
+```
+
+It performs a read-only Claude usage probe, then runs the frozen task through the
+real Docker environment and verifier using Pier's built-in `nop` agent. It never
+injects Claude credentials or calls a model, and its result is explicitly not a
+calibration measurement. The same command supports `--provider openai` and
+`--provider zai` for their respective read-only usage probes.
+
 ## Step 3 — Launch the run
 
 Auto-pick the first unmeasured calibration task:
