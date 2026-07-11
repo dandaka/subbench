@@ -14,6 +14,7 @@ import {
   readAndVerifyLock,
   readLockedSelection,
 } from "./deepswe-lock.ts";
+import { prepareDeepSwe } from "./prepare-deepswe.ts";
 
 interface SelectedTask {
   id: string;
@@ -93,30 +94,7 @@ async function run(
 }
 
 async function prepare(lock: DeepSweLock): Promise<void> {
-  if (!existsSync(benchmark)) {
-    const status = await run([
-      "git",
-      "clone",
-      "--no-checkout",
-      "https://github.com/datacurve-ai/deep-swe.git",
-      benchmark,
-    ]);
-    if (status !== 0) throw new Error("failed to clone DeepSWE");
-  }
-  const checkout = await run([
-    "git",
-    "-C",
-    benchmark,
-    "checkout",
-    "--detach",
-    lock.deepswe_commit,
-  ]);
-  if (checkout !== 0)
-    throw new Error(
-      `failed to checkout locked DeepSWE commit ${lock.deepswe_commit}`,
-    );
-  if (!existsSync(database))
-    throw new Error(`fresh locked study is missing: ${database}`);
+  await prepareDeepSwe(lock, { benchmark, database, run });
 }
 
 function nextTask(): SelectedTask {

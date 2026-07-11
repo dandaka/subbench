@@ -3,6 +3,21 @@
 This log records durable changes and decisions that affect future work. It is not a
 measurement run log and does not establish publication evidence.
 
+## 2026-07-11 — Fix prepare() aborting on a pre-existing shallow DeepSWE clone
+
+- Bug: all three calibration runners cloned DeepSWE only when `.subbench/deep-swe`
+  was missing, then ran `git checkout --detach <lock.deepswe_commit>`. A pre-existing
+  shallow clone lacking the pinned commit made checkout fail with "unable to read
+  tree", aborting every run in `prepare()` before any subscription call.
+- Fix: factored the shared prepare logic into [prepare-deepswe.ts](../scripts/prepare-deepswe.ts).
+  Before the detached checkout it now probes `git cat-file -t <commit>` and, when the
+  pinned commit is absent, runs `git fetch --depth=1 origin <commit>` to deepen/retrieve
+  it. The three runners (`run-deepswe-calibration.ts`, `run-zai-deepswe-calibration.ts`,
+  `run-claude-deepswe-calibration.ts`) now delegate to it.
+- Coverage: added [prepare-deepswe.test.ts](../scripts/prepare-deepswe.test.ts) —
+  fetch-on-missing, skip-fetch-when-present, and abort-on-fetch-failure. No measurement
+  protocol or economics change.
+
 ## 2026-07-10 — Add rationale and open-questions docs
 
 - Added [why-calibration.md](why-calibration.md): the "why not just use imported token
