@@ -65,8 +65,13 @@ These are mirrored tersely in methodology.md → *V1 Open Questions*.
 - **Economics source coverage.** Does FrontierCode publish per-task cost/token data
   anywhere (API, dataset release)? Determines whether a second, code-quality-graded
   economics source is available.
-- **Normalization window.** Should the first public score use weekly or monthly
-  normalization?
+- **Normalization window.** ~~Should the first public score use weekly or monthly
+  normalization?~~ **Resolved 2026-07-12: weekly.** All three confirmed providers run a
+  7-day weekly quota window (Claude Max, OpenAI Plus/Codex, Z.ai); the window is the
+  canonical unit and price is prorated into it (`window_price = price × 7/30`). Weekly
+  is the meter providers enforce and keeps SVI cross-comparable; monthly would invent a
+  reset convention none of them exposes. See methodology → V1 Open Questions and
+  log 2026-07-12.
 
 ## Curiosity questions (structure discovery — non-goal for V1)
 

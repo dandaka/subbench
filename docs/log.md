@@ -3,6 +3,110 @@
 This log records durable changes and decisions that affect future work. It is not a
 measurement run log and does not establish publication evidence.
 
+## 2026-07-12 — Cache-weighting experiment design (do not execute)
+
+- Added [cache-weighting-experiment.md](cache-weighting-experiment.md): design-only
+  spec for the pivot open question (does the quota meter discount cache reads like the
+  API?). Estimator is the ratio of `drain_per_api_dollar` between a cache-heavy and a
+  cache-light workload of equal API cost; band overlapping 1 ⇒ one conversion factor
+  stands, band > 1 ⇒ workload-dependent factor and the trigger to model provider
+  structure.
+- Key flag, tying in items 1–2: **all three confirmed cells are grade `rounded`**, so
+  the test is infeasible cheaply — the decision statistic is a ratio of two ~1–2-point
+  drains (±50–100% each). It needs either an exact per-task drain surface (none exists
+  for Claude Code/Codex/Z.ai today) or large repetition (~15–30 matched tasks per arm),
+  which is a dedicated §2-isolated study, not a light probe. Z.ai cannot be included at
+  all until its `economics_gap` is closed (no GLM-5.2 in DeepSWE v1.1 ⇒ no
+  `api_equivalent_usd` denominator). Indexed in AGENTS.md.
+
+## 2026-07-12 — Normalization decision: weekly (operator-confirmed)
+
+- The first public score normalizes to the **weekly** quota window. Rationale: all
+  three confirmed providers (Claude Max, OpenAI Plus/Codex, Z.ai) enforce a 7-day
+  weekly window (log 2026-07-12); protocol §5 already treats the quota window as the
+  canonical unit and prorates the monthly price into it (`window_price = price ×
+  quota_window_days / billing_days = price × 7/30`). Weekly matches the meter providers
+  actually enforce and keeps SVI (native tasks per window per window-dollar) directly
+  comparable across providers. Monthly would require aggregating ~4.3 weekly windows
+  under a reset convention no provider exposes and would reintroduce a window/billing
+  mismatch.
+- Recorded as resolved in methodology (V1 Open Questions) and open-questions.md. No
+  formula change — the machinery was already window-based; this fixes the window as
+  weekly for V1. Results expire at the end of their stated weekly window.
+
+## 2026-07-12 — Resolve Claude exact-float scope (desk verification, no live run)
+
+- Question: can the she-llac/claude-counter `message_limit` SSE float supply exact
+  utilization, and can it bracket Claude Code runs (protocol §5 caveat)? Settled
+  without consuming quota (operator declined the optional live probe as unnecessary):
+  - **The float exists and is exact**, for the same weekly/session windows we measure
+    — confirmed from the claude-counter source: it reads "exact, unrounded utilization
+    fractions" from live SSE `message_limit` and "makes requests only to `claude.ai`".
+  - **It is claude.ai-chat-only.** The persisted OAuth payload
+    (`claude-max.db` raw_json) shows `five_hour.utilization`/`seven_day.utilization`
+    are bare integers (31, 28); the payload's only non-integer float is
+    `extra_usage.utilization` (1.647… = 70/4250 overage-credit spend), which is
+    unrelated to the weekly window. So `api.anthropic.com/oauth/usage` — the endpoint
+    Claude Code and our collector use — never carries the exact window float.
+  - **Cannot bracket a Claude Code task.** Reading the float means sending a claude.ai
+    chat message, which drains the same shared weekly quota. A pre/post pair inserts
+    two extra quota-consuming messages around the task and measures the probe, not the
+    task.
+- Conclusion recorded in protocol §5 and methodology (Measurement Grade): grade
+  `exact` is viable for the **capacity numerator** (one claude.ai read of the weekly
+  float, on the claude.ai surface) but Claude Code **per-task drain stays `rounded`**
+  and the §4 batch-delta machinery is still required. The two grades can differ within
+  one cell and must each be recorded. No exact-collector prototype is warranted for the
+  Claude Code drain path; a claude.ai capacity reader remains a possible future add for
+  the numerator only.
+
+- Audit findings (desk work, commit abc8a09 baseline):
+  - **Batch-delta estimator**: the aggregate `nativeTasksPerWindow` in
+    `analysis.ts` already telescopes correctly — its denominator sums contiguous
+    per-run `usage_delta`, which equals the batch-level delta. But `conversionFactor
+    = median(usage_delta/api_equivalent_usd)` and the per-run `drainCi` are exactly
+    the per-task drain-vs-cost quantities §4 calls individually uninterpretable on
+    rounded meters. Added a doc comment marking them descriptive-only; no math change.
+  - **3× median abort rule**: not implemented, and worse, `aborted` was miswired in
+    all three runners as `exitCode === 0 ? 0 : 1` — i.e. it recorded *task failure*,
+    not a *runaway drain*. Per §4, a failed-but-normal task is `success=0,
+    aborted=0`; `aborted` means the drain hit 3× the established median.
+  - **Cache-spacing (1h) guard**: no check on same-task relaunches within the
+    prompt-cache TTL.
+- Implemented `packages/core/src/run-hygiene.ts` (pure, no IO — needs no run):
+  `findCacheAdjacency` (same-`task_id` pairs closer than the 1h TTL floor),
+  `findUnmarkedRunaways` / `isRunawayDrain` (3×-median abort, with the median taken
+  over non-runaway runs so a runaway can't lift its own bar), and
+  `batchMeanDrainPerTask` (the §4 batch estimator). Exported from `core/index.ts`.
+  Added `packages/core/test/run-hygiene.test.ts` (13 tests).
+- Rewired `aborted` in all three calibration runners to decide from the prior
+  in-batch drains via `isRunawayDrain(priorDrains, drain)`, decoupling it from the
+  exit code. `bun test` green (52 tests); `tsc --build` clean; all three runners
+  bundle. No calibration run was launched; the abort path is exercised only by the
+  pure unit tests until the operator's next isolated window.
+
+## 2026-07-12 — Correct Codex and Z.ai precision labels to integer-percent
+
+- Both collectors declared `precision: "decimal"` unverified. Inspecting the raw
+  payloads persisted in the frozen studies settled it — both serve whole percents,
+  same as Claude (grade `rounded`), not decimals:
+  - Codex (`openai-plus.db`): `primary/secondary.usedPercent` is a whole integer in
+    every snapshot (14/34/81 primary, 2/5/13 secondary).
+  - Z.ai (`zai-coding-lite.db`): every limit record carries a whole-integer
+    `percentage` (0/30/33/66/72/86/100). The `currentValue/limitValue` ratio in
+    `percentage()` — the only fractional branch — never fires (no
+    `limitValue`/`limit`/`total` key is ever present).
+- Corrected `precision` to `integer-percent` in `packages/cli/src/codex-usage.ts`
+  and `zai-usage.ts`, each with a comment citing the payload evidence, following the
+  Claude precedent (commit abc8a09). Added a precision assertion to the existing
+  Codex snapshot test and a new `packages/cli/test/zai-usage.test.ts` (asserts the
+  label and that every emitted utilization is a whole integer). `bun test` green.
+- Consequence: all three confirmed cells are grade `rounded`. The batch-level-delta
+  estimator and per-task-uninterpretability rules (protocol §4) apply to Codex and
+  Z.ai exactly as to Claude Max — no cell currently has finer than ±1-point
+  per-snapshot resolution. Existing frozen snapshots keep their recorded `decimal`
+  label; their raw payloads make the actual precision auditable.
+
 ## 2026-07-12 — Claude Max drain resolution: batch-level deltas are the estimator
 
 - The Claude OAuth usage endpoint serves weekly/session utilization as whole percents

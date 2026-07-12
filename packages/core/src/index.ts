@@ -11,6 +11,16 @@ export {
   validateDatabase,
 } from "./database.ts";
 export { renderCsv, renderJson, renderMarkdown } from "./report.ts";
+export {
+  auditRunHygiene,
+  batchMeanDrainPerTask,
+  CACHE_TTL_MS,
+  findCacheAdjacency,
+  findUnmarkedRunaways,
+  isRunawayDrain,
+  RUNAWAY_MULTIPLE,
+} from "./run-hygiene.ts";
+export type { HygieneIssue } from "./run-hygiene.ts";
 export { migrate, schema } from "./schema.ts";
 export {
   bootstrapCi,

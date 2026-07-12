@@ -116,7 +116,11 @@ export function codexSnapshotFromResponse(
       name: "codex-app-server",
       version: "0.1.0",
       authority: "official-client",
-      precision: "decimal",
+      // The app-server rate-limit endpoint serves primary/secondary
+      // usedPercent as whole integers (methodology grade "rounded");
+      // confirmed across all persisted openai-plus.db payloads
+      // (14/34/81 primary, 2/5/13 secondary — never fractional).
+      precision: "integer-percent",
       cached: false,
     },
     source: {

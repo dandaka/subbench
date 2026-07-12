@@ -182,6 +182,13 @@ Measurement grade — quality of the quota data source:
   bodies (she-llac/claude-counter methodology). This technique rests on a single
   unreplicated source: validate the SSE-derived values against displayed
   percentages during the first runs of each Claude cell before relying on them.
+  Scope (established 2026-07-12, desk verification — see protocol §5): the float
+  is emitted only on the claude.ai chat SSE stream, not the OAuth `/usage` endpoint
+  Claude Code reads. It gives `exact` **capacity** (one claude.ai read of the weekly
+  float) but cannot bracket a Claude Code task without inserting quota-draining chat
+  messages, so Claude Code **per-task drain stays `rounded`** and the batch-delta
+  machinery still applies. Measurement grade can differ between the capacity
+  numerator and the drain calibration within one cell; record each explicitly.
 - Rounded: only rounded usage percentages are available. Rounding adds quantization
   error on the order of ±1 point per run, and per-run relative error scales inversely
   with drain size. Drain size is plan-dependent: the percent meter measures the plan's
@@ -452,7 +459,13 @@ Plan A is the best AI subscription.
   the factor depends on the workload's cache ratio. Test: compare drain-per-API-dollar
   between one cache-heavy task and one cache-light task per plan.
 - Does FrontierCode publish per-task cost/token data anywhere (API, dataset release)?
-- Should the first public score use weekly or monthly normalization?
+- ~~Should the first public score use weekly or monthly normalization?~~ **Resolved
+  2026-07-12: weekly.** All three confirmed providers (Claude Max, OpenAI Plus/Codex,
+  Z.ai) enforce a 7-day weekly quota window; the quota window is already the canonical
+  unit and price is prorated into it (`window_price = price × 7/30`). Weekly matches the
+  meter providers actually enforce and keeps SVI comparable across providers; monthly
+  would require aggregating ~4.3 weekly windows under a reset convention no provider
+  exposes. Results expire at the end of their stated weekly window.
 
 ## V2 Directions
 

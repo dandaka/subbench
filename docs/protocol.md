@@ -98,11 +98,27 @@ tasks per window per window-dollar, so results from different providers with dif
 windows remain comparable. **A study whose quota window cannot be stated is not
 publishable** — a rolling limit with no justifiable window is rejected in validation.
 
-For Claude cells, prefer grade `exact` by reading utilization floats from the
-`message_limit` objects in Claude.ai SSE response bodies; cross-check them against
-displayed percentages during the first runs of each cell before relying on them. This
-Claude.ai technique does not by itself provide pre/post snapshots for Claude Code runs;
-validate the selected collection path on the measured product surface.
+For Claude cells, prefer grade `exact` for **capacity** by reading the unrounded
+weekly/session utilization floats from the `message_limit` objects in Claude.ai SSE
+chat responses (she-llac/claude-counter). Cross-check them against displayed
+percentages before relying on them.
+
+Scope, established 2026-07-12 from persisted evidence and the claude-counter source
+(not a live run): the exact float is emitted **only on the claude.ai chat completion
+SSE stream**. The `api.anthropic.com/oauth/usage` endpoint that Claude Code and our
+collector read carries integer `utilization` only — its sole non-integer field,
+`extra_usage.utilization`, is paid overage-credit spend, unrelated to the weekly
+window. Consequences:
+
+- **Capacity (§5 numerator):** viable at grade `exact` — one claude.ai chat message
+  yields the exact remaining-weekly float. Do this on the claude.ai surface, not
+  Claude Code.
+- **Per-task drain (§4 calibration on Claude Code):** the float **cannot** bracket a
+  Claude Code task. Reading it requires sending a claude.ai chat message, which drains
+  the same shared weekly quota; a pre/post pair would insert two extra quota-consuming
+  messages around the task and measure the probe, not the task. Claude Code per-task
+  drain therefore stays grade `rounded`, and the §4 batch-delta machinery is still
+  required. Grade `exact` does **not** moot quantization for the drain side.
 
 ## 6. Validate and publish
 

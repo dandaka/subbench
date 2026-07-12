@@ -39,6 +39,15 @@ export function calculate(input: AnalysisInput): Result {
   if (weights.some((weight) => !(weight > 0) || !Number.isFinite(weight))) {
     throw new Error("task weights must be finite and positive");
   }
+  // Diagnostics only. `factors` and `conversionFactor` are per-run drain-per-cost
+  // quantities; on a rounded (integer-percent) meter each per-run delta carries a
+  // ±1-point quantization error that dominates a 1–2 point Claude-Max-class drain,
+  // so these support NO per-task conclusions (protocol §4). The resolution-correct
+  // estimator is the aggregate below: `totalWeightedDrain` sums contiguous per-run
+  // deltas, and paired snapshots telescope, so the sum equals the batch-level delta
+  // (first pre-usage to last post-usage) with a single ±1-point error for the whole
+  // batch. Read `conversionFactor`/`drainCi` as descriptive per-run spread, never as
+  // a per-task drain-vs-API-cost relationship.
   const conversionFactor = median(factors);
   const [drainCiLow, drainCiHigh] = bootstrapCi(
     factors.map((factor) => averageCostUsd * factor),

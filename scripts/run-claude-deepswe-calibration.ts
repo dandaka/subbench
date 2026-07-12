@@ -11,6 +11,7 @@ import { selectWindow } from "../packages/cli/src/usage.ts";
 import {
   insertRun,
   insertUsageSnapshots,
+  isRunawayDrain,
   openDatabase,
 } from "../packages/core/src/index.ts";
 import {
@@ -305,6 +306,16 @@ const success =
   result.verifier_result.rewards?.reward === 1;
 const db = openDatabase(database);
 try {
+  // §4 abort rule: `aborted` marks a runaway (≥3× the established median drain),
+  // NOT a task failure. Decide it from the prior in-batch drains, not the exit
+  // code. A failed-but-normal task is success=0, aborted=0.
+  const drain = postWeekly.usedPercent - preWeekly.usedPercent;
+  const priorDrains = db
+    .query<{ drain: number }, [number]>(
+      "SELECT usage_delta AS drain FROM runs WHERE measurement_id=? ORDER BY started_at",
+    )
+    .all(1)
+    .map((row) => row.drain);
   const runId = insertRun(db, {
     measurement_id: 1,
     benchmark_source_id: 1,
@@ -321,7 +332,7 @@ try {
     success: success ? 1 : 0,
     retries: 0,
     limit_event: 0,
-    aborted: exitCode === 0 ? 0 : 1,
+    aborted: isRunawayDrain(priorDrains, drain) ? 1 : 0,
     peak_hours: 0,
     promotion: 0,
     isolation_confirmed_at: new Date().toISOString(),

@@ -52,6 +52,10 @@ describe("Codex usage", () => {
     );
     expect(snapshot.provider).toBe("codex");
     expect(snapshot.collector.authority).toBe("official-client");
+    // The live endpoint serves whole-integer usedPercent (grade "rounded"),
+    // confirmed across all persisted openai-plus.db payloads. The 15.5 above
+    // only exercises pass-through; the collector labels the source honestly.
+    expect(snapshot.collector.precision).toBe("integer-percent");
     expect(snapshot.windows[0]).toMatchObject({
       kind: "session",
       usedPercent: 15.5,
