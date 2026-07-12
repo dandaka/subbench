@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import {
   readClaudeCredential,
@@ -233,9 +233,23 @@ if (preSession.usedPercent >= 70) {
 const jobName = `claude-max-${task.id}-${Date.now()}`;
 const jobDirectory = resolve(jobs, jobName);
 const startedAt = new Date();
+// Keep paired collector evidence beside the Pier job as it is obtained. If the
+// parent runner is interrupted after a valid task, this preserves the original
+// snapshots for a reviewed recovery instead of forcing another quota spend.
+const evidencePath = resolve(jobs, `${jobName}.usage-snapshots.json`);
+function persistUsageEvidence(
+  preSnapshot: UsageSnapshot,
+  postSnapshot?: UsageSnapshot,
+): void {
+  writeFileSync(
+    evidencePath,
+    JSON.stringify({ pre: preSnapshot, post: postSnapshot ?? null }, null, 2),
+  );
+}
 console.log(
   `Running ${task.id} with ${model}; weekly usage is ${preWeekly.usedPercent}%`,
 );
+persistUsageEvidence(pre);
 const exitCode = await run(
   [
     "pier",
@@ -277,6 +291,7 @@ if (!result.agent_result || !result.verifier_result) {
 }
 
 const post = await readPostUsage();
+persistUsageEvidence(pre, post);
 const postWeekly = selectWindow(post, "weekly");
 if (post.account.idHash !== pre.account.idHash) {
   throw new Error("account changed between pre- and post-read; run discarded");

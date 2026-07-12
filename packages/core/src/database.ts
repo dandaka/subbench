@@ -208,7 +208,16 @@ export function insertUsageSnapshots(
   const postWindow = post.windows.find((window) => window.kind === windowKind);
   if (!preWindow || !postWindow)
     throw new Error(`usage snapshots lack ${windowKind} window`);
-  if (preWindow.resetsAt !== postWindow.resetsAt) {
+  // Provider reset timestamps can be rendered with small capture-time rounding
+  // differences (for example 15:59:59.794Z vs 16:00:00.287Z) for the same
+  // weekly window. Treat only a material difference as a crossed reset.
+  const resetDriftMs =
+    preWindow.resetsAt && postWindow.resetsAt
+      ? Math.abs(
+          Date.parse(preWindow.resetsAt) - Date.parse(postWindow.resetsAt),
+        )
+      : 0;
+  if (preWindow.resetsAt !== postWindow.resetsAt && resetDriftMs > 1_000) {
     throw new Error(`usage snapshots cross a ${windowKind} reset`);
   }
   const transaction = db.transaction(() => {

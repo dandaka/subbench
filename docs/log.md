@@ -3,6 +3,34 @@
 This log records durable changes and decisions that affect future work. It is not a
 measurement run log and does not establish publication evidence.
 
+## 2026-07-12 — Claude Max calibration paused after laptop restart
+
+- Two valid Claude Max calibration runs are persisted in
+  `data/frozen-studies/deepswe-v1.1-2026-07-10/claude-max.db`, each with server-authoritative
+  paired usage snapshots and an isolation attestation: `dasel-html-document-format` passed
+  with weekly usage 28%→30%, and `kgateway-consistent-hash-policy` passed with weekly usage
+  30%→31%.
+- Collection stopped at 2/5 required valid runs when the laptop was restarted. No third
+  calibration task was launched. Resume only after Docker Desktop is available and the
+  Claude Code OAuth login has been refreshed; re-confirm operator isolation before the next
+  run.
+- The canonical SQLite database and a deterministic JSON export are now versioned for this
+  frozen Claude study. Raw Docker/Pier jobs remain local-only because they contain complete
+  task worktrees and agent trajectories, which are not necessary measurement evidence.
+
+## 2026-07-12 — Preserve Claude runner usage evidence during a run
+
+- The Claude calibration runner now writes its read-only pre and post usage snapshots
+  beside the Pier job as each is captured. This permits a reviewed recovery if the
+  parent process is interrupted after a valid task, rather than repeating model work
+  solely because in-memory collector evidence was lost.
+
+## 2026-07-12 — Tolerate Claude reset timestamp rounding
+
+- Claude can render the same quota-window reset with sub-second timestamp drift between
+  paired captures. Snapshot validation now treats drift of up to one second as the same
+  window, while continuing to reject material reset changes.
+
 ## 2026-07-12 — ClaudeBar is not a Z.ai usage reference here
 
 - ClaudeBar's Z.ai probe is indirect: it reads a z.ai endpoint from `~/.claude/settings.json`
