@@ -153,7 +153,10 @@ export function claudeSnapshotFromResponse(
       name: "claude-oauth-usage",
       version: "0.1.0",
       authority: "server",
-      precision: "decimal",
+      // The OAuth usage endpoint serves five_hour/seven_day utilization as
+      // whole percents (methodology grade "rounded"); floats appear only in
+      // unrelated fields like extra_usage.
+      precision: "integer-percent",
       cached: false,
     },
     source: {

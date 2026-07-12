@@ -3,6 +3,36 @@
 This log records durable changes and decisions that affect future work. It is not a
 measurement run log and does not establish publication evidence.
 
+## 2026-07-12 — Claude Max drain resolution: batch-level deltas are the estimator
+
+- The Claude OAuth usage endpoint serves weekly/session utilization as whole percents
+  (confirmed in all persisted raw payloads; floats appear only in unrelated fields such
+  as `extra_usage`). The Claude collector's `precision` label was corrected from
+  `decimal` to `integer-percent` (`packages/cli/src/claude-usage.ts`), with the test
+  updated to match. Existing frozen snapshots keep their recorded `decimal` label;
+  their raw payloads make the actual precision auditable.
+- Observed Claude Max drains are 1–2 points per DeepSWE task (28→30, 30→31), not the
+  5–6 points the methodology assumed, so a single rounded per-task delta is
+  ±50–100% — individually uninterpretable. The two runs even show a spurious 6×
+  quota-per-dollar inversion ($5.79 task drained 2 points, $17.34 task drained 1).
+- Methodology (Measurement Grade) and protocol §4 now require: on rounded indicators,
+  estimate mean drain per task from contiguous batch-level deltas (snapshots
+  telescope, one ±1-point error per batch); per-task rounded deltas are descriptive
+  only and support no per-task conclusions. At ~1.5 points/task, 5 contiguous tasks
+  give roughly ±13% on mean drain — adequate for plan comparisons ≥1.5× apart.
+- Quantization severity is plan-dependent (the percent meter measures the plan's
+  quota, so the same task drains fewer points on a $100-200 tier than a $20 tier);
+  batch length is the primary resolution knob (±1/N points on the mean), and harder
+  tasks lift per-task drain above the rounding floor but must not skew the sample
+  away from the benchmark's cost distribution without reweighting.
+- Cache hygiene added to methodology (Measurement Conditions) and protocol §4:
+  never launch an identical task twice within the provider's prompt-cache TTL
+  (Anthropic: 5-min default refreshed on hit, 1-hour extended; 1 hour is the
+  conservative spacing floor). A warm-cache repeat can drain less than a cold run
+  if the quota meter discounts cache reads (the open cache-weighting question).
+  Distinct tasks back-to-back remain fine and representative. This is an
+  account-scheduling concern — the benchmark source does not handle it.
+
 ## 2026-07-12 — Claude Max calibration paused after laptop restart
 
 - Two valid Claude Max calibration runs are persisted in

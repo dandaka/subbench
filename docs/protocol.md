@@ -46,6 +46,31 @@ Use 5–10 representative tasks per cell. Immediately before and after each task
 the product's weekly or monthly usage indicator. Pace work so short session limits do not
 bind. Record interruptions if they do.
 
+When the indicator is grade `rounded` (integer percent), run tasks in contiguous batches
+and compute mean drain per task from the batch-level delta (first pre-run snapshot to
+last post-run snapshot): paired snapshots telescope, so the batch delta carries a single
+±1-point quantization error regardless of batch size. Individual per-task deltas of 1–2
+points are dominated by rounding — record them, but do not interpret them individually
+or draw per-task conclusions (such as drain versus API-cost proportionality) from them.
+A gap between tasks (interruption, other usage) ends the batch; start a new one at the
+next task.
+
+Per-task percent drain shrinks as plan quota grows, so size batches to the plan: on
+large-quota tiers (Claude Max-class), plan longer contiguous batches — error on mean
+drain per task falls as ±1/N points with batch length N. Harder tasks also lift per-task
+drain above the rounding floor, but keep the sample representative of the benchmark's
+cost distribution; do not skew toward expensive tasks solely for resolution unless the
+estimate is explicitly reweighted.
+
+Cache hygiene: never launch an identical task twice within the provider's prompt-cache
+TTL — a warm-cache repeat can drain less quota than a cold run and corrupt the estimate
+(Anthropic: 5-minute default TTL refreshed on each hit, 1-hour extended TTL; treat
+1 hour as the conservative floor and assume the same for providers with undocumented
+caching). Replicates of the same task must be spaced by at least the TTL; distinct
+tasks back-to-back are fine — they share only the harness system-prompt prefix, which
+matches real continuous usage. The benchmark source does not handle this; it is an
+account-scheduling concern, auditable from recorded run timestamps.
+
 The account must be dedicated to measurement, or verified idle on every other product
 surface for the whole window — providers share quota across surfaces (Claude across
 Code/chat/Cowork), and concurrent usage silently inflates observed drain. Concurrent

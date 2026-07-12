@@ -23,7 +23,7 @@ describe("Claude usage snapshot", () => {
     expect(snapshot.provider).toBe("claude");
     expect(snapshot.account).toEqual({ plan: "max", idHash: "abcd1234" });
     expect(snapshot.collector.authority).toBe("server");
-    expect(snapshot.collector.precision).toBe("decimal");
+    expect(snapshot.collector.precision).toBe("integer-percent");
     expect(snapshot.windows).toEqual([
       {
         kind: "session",

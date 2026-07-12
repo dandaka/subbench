@@ -114,6 +114,18 @@ Quota behavior depends on conditions that providers vary openly. Every run must 
 Results measured under a bonus or promotion are reported separately, never averaged into
 baseline capacity.
 
+Prompt-cache state is a measurement condition. Providers cache prompt prefixes
+server-side (Anthropic: 5-minute default TTL, refreshed on each hit, with an optional
+1-hour extended TTL; API cache reads bill at ~0.1× input price). If the quota meter
+discounts cache reads the way the API does — the unresolved cache-weighting question in
+V1 Open Questions — then a run that hits a warm cache from a previous run of the *same*
+task drains materially less quota than a cold run, corrupting the drain estimate.
+Within-run caching is intrinsic to the harness and representative of real use; the
+distortion is cross-run. The benchmark source cannot control this — cache state is a
+property of the measurement account and run scheduling, so the protocol carries the
+operational rule (§4): never launch an identical task twice within the provider's cache
+TTL. Run timestamps (already required) make cache adjacency auditable.
+
 ## Harness Isolation
 
 Applies to calibration and capacity runs (task economics come pre-isolated from the
@@ -170,9 +182,24 @@ Measurement grade — quality of the quota data source:
   bodies (she-llac/claude-counter methodology). This technique rests on a single
   unreplicated source: validate the SSE-derived values against displayed
   percentages during the first runs of each Claude cell before relying on them.
-- Rounded: only rounded usage percentages are available. Note that rounding adds
-  quantization error on the order of ±1 point per run; with typical drains of
-  5-6 points this is ~±20% per run, mitigated by sample size.
+- Rounded: only rounded usage percentages are available. Rounding adds quantization
+  error on the order of ±1 point per run, and per-run relative error scales inversely
+  with drain size. Drain size is plan-dependent: the percent meter measures the plan's
+  quota, so the same task drains proportionally fewer points on a large-quota plan.
+  A 5-6 point drain (~±20%/run) is plausible on a $20 tier; on Claude Max ($100) the
+  observed drain is 1-2 points per DeepSWE task, making a single-task delta ±50-100% —
+  individually uninterpretable. Expect coarser per-task resolution the bigger the plan.
+  Mitigations: (a) paired snapshots over contiguous runs telescope, so the batch-level
+  delta (first pre-usage to last post-usage) is one ±1-point measurement regardless of
+  batch size — error on mean drain per task falls as ±1/N points, making batch length
+  the primary resolution knob; (b) costlier tasks drain more points per run and lift
+  the signal above the rounding floor, but the calibration sample must still match the
+  benchmark's cost distribution — until the cache-weighting question (see V1 Open
+  Questions) is settled, drain cannot be assumed linear in API cost, so a
+  hard-task-skewed sample biases mean drain unless explicitly reweighted. Estimate
+  mean drain per task from batch-level deltas; treat per-task rounded deltas as
+  descriptive only, and never draw per-task conclusions (e.g. drain vs API cost
+  correlation) from them.
 - Inferred: quota is inferred from depletion experiments.
 - Unknown: insufficient data.
 
