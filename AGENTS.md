@@ -8,6 +8,7 @@ Key documents in `docs/` (read the relevant one before working):
 - [docs/why-calibration.md](docs/why-calibration.md) — why calibration is needed (the "why not just use tokens?" answer)
 - [docs/open-questions.md](docs/open-questions.md) — open questions, including whether to reverse-engineer subscription structure
 - [docs/calibration-tasks.md](docs/calibration-tasks.md) — calibration task set
+- [docs/cache-weighting-experiment.md](docs/cache-weighting-experiment.md) — design (do not execute) for the pivot cache-weighting question; infeasible on integer meters
 - [docs/running-claude-max-calibration.md](docs/running-claude-max-calibration.md) — operator runbook: how to run a Claude Max calibration test
 - [docs/research.md](docs/research.md) — supporting research and external context
 - [docs/log.md](docs/log.md) — concise record of important project changes
@@ -18,6 +19,12 @@ Record every important, durable project change in [docs/log.md](docs/log.md) in 
 same change set. Include the date, a short summary, and the affected artifacts or
 decisions. Do not log routine formatting, dependency-only updates, or transient run
 output. Never use the log as a substitute for required measurement evidence.
+
+# Knowledge storage
+
+Do not use agent memory. Store all durable knowledge in versioned markdown documents
+under `docs/` (and record the change in [docs/log.md](docs/log.md)). Memory is invisible
+and non-reproducible; markdown is auditable and shared across operators and sessions.
 
 # Benchmarking protocol
 

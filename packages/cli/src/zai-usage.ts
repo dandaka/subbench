@@ -88,7 +88,12 @@ export function zaiSnapshotFromResponse(
       name: "zai-quota-api",
       version: "0.1.0",
       authority: "server",
-      precision: "decimal",
+      // The quota endpoint always supplies a whole-integer `percentage`
+      // field per limit record (methodology grade "rounded"); confirmed
+      // across all persisted zai-coding-lite.db payloads (0/30/33/66/72/
+      // 86/100). The currentValue/limitValue ratio in percentage() is a
+      // fallback that never fires here, so no fractional value is emitted.
+      precision: "integer-percent",
       cached: false,
     },
     source: {
