@@ -17,6 +17,9 @@ measurement run log and does not establish publication evidence.
 - The canonical SQLite database and a deterministic JSON export are now versioned for this
   frozen Claude study. Raw Docker/Pier jobs remain local-only because they contain complete
   task worktrees and agent trajectories, which are not necessary measurement evidence.
+- The same preservation policy now covers the existing OpenAI Plus and Z.ai frozen-study
+  databases and their JSON evidence exports, so every provider's collected calibration
+  evidence is repository-backed.
 
 ## 2026-07-12 — Preserve Claude runner usage evidence during a run
 

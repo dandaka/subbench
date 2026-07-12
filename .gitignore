@@ -8,6 +8,8 @@ build/
 *.tsbuildinfo
 *.db
 !data/frozen-studies/deepswe-v1.1-2026-07-10/claude-max.db
+!data/frozen-studies/deepswe-v1.1-2026-07-10/openai-plus.db
+!data/frozen-studies/deepswe-v1.1-2026-07-10/zai-coding-lite.db
 .env
 .env.*
 !.env.example
