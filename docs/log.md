@@ -3,6 +3,39 @@
 This log records durable changes and decisions that affect future work. It is not a
 measurement run log and does not establish publication evidence.
 
+## 2026-07-12 — ClaudeBar is not a Z.ai usage reference here
+
+- ClaudeBar's Z.ai probe is indirect: it reads a z.ai endpoint from `~/.claude/settings.json`
+  (the Claude-Code `ANTHROPIC_BASE_URL`→z.ai override). This machine has no such entry, so
+  the probe fails on every tick (`Zai probe failed: No z.ai endpoint found in Claude config`,
+  latest 2026-07-12T00:41Z in `~/Library/Logs/ClaudeBar/ClaudeBar.log`). Do not treat
+  ClaudeBar as a working Z.ai cross-check reference.
+- Authoritative Z.ai path is our own `packages/cli/src/zai-usage.ts`: direct
+  `GET https://api.z.ai/api/monitor/usage/quota/limit` with `Authorization: Bearer
+  $ZAI_AUTH_TOKEN`, parsing windows by `unit` (3=session, 6=weekly, 7=monthly) plus MCP.
+- §5 cross-check done against the live Z.ai UI screenshot instead of ClaudeBar: displayed
+  Weekly 14% (Jul 14) / 5-hour 100% / MCP 67% (Jul 23) map one-to-one onto the recorded
+  unit=6 / unit=3 / mcp windows and agree, confirming the collector and the 7-day weekly gate.
+
+## 2026-07-12 — Confirm Codex and Z.ai quota windows
+
+- Codex (openai-plus): recorded `resets_at` for the weekly window is capture+7 days
+  (captured 2026-07-11, resets 2026-07-18), confirming a fixed 7-day weekly window.
+  Also carries a 5-hour rolling session window (the 70% guard). `quota_window_days = 7`;
+  window_price ≈ $20 × 7/30 ≈ $4.67.
+- Z.ai (zai-coding-lite, "GLM Coding Lite"): monthly billing plan (renews Jul 23) with a
+  7-day weekly usage window (snapshot + UI both show reset 2026-07-14), a 5-hour session
+  cap, and a separate MCP cap (resets ~Jul 23). Earlier "window may be unstateable"
+  concern was wrong — the ~3-day gap was time-remaining in a rolling weekly window, not a
+  window length. `quota_window_days = 7`; window_price ≈ $17 × 7/30 ≈ $3.97.
+- Z.ai plan shows a "150% Quota" promotion — record per protocol §1 and never mix promo
+  and baseline runs.
+- Reference: the Claude usage collector (`packages/cli/src/claude-usage.ts`) mirrors
+  ClaudeBar's OAuth approach (GET `api.anthropic.com/api/oauth/usage`, beta header
+  `oauth-2025-04-20`). This is the Claude-cell reference only; Codex and Z.ai use their
+  own collectors. Z.ai still carries an `economics_gap` (no GLM-5.2 in DeepSWE v1.1), so
+  its SVI stays null; the window itself is valid.
+
 ## 2026-07-11 — Add zero-subscription calibration preflight
 
 - Added `bun run preflight:calibration --provider claude|openai|zai`. It performs
