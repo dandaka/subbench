@@ -3,6 +3,27 @@
 This log records durable changes and decisions that affect future work. It is not a
 measurement run log and does not establish publication evidence.
 
+## 2026-07-13 — Re-pulled DeepSWE v1.1 with GLM-5.2; Z.ai economics gap closed (R.2/R.3)
+
+- Regenerated `data/deepswe-v1.1-calibration-tasks.json` by re-running
+  `scripts/select-deepswe-tasks.ts` against the archived 2026-07-10 upstream artifacts
+  (`data/deepswe-v1.1-2026-07-10/artifacts/tasks.json` + `trials.json`) with a 3-model
+  config set: `claude-opus-4-8[max]`, `glm-5-2[max]`, `gpt-5-5[xhigh]`.
+- **GLM-5.2[max] now present** in the local freeze: Pass@1 44% ($3.92 avg cost, 129 avg
+  steps, 450-sample). This is the same data already in
+  `data/deepswe-v1.1-2026-07-10/selection.json` — the calibration-tasks.json was stale
+  (4-model legacy schema predating the GLM-5.2 upstream addition).
+- Schema upgraded from ad-hoc v1 (with `aggregate_models`, `snapshot_date`, model-prefixed
+  columns) to schema_version 2 (the canonical `select-deepswe-tasks.ts` output with
+  `economics[]` array and `model_costs` per task). No downstream code consumed the old
+  schema fields.
+- The old 4-model set (claude-fable-5, claude-sonnet-5, claude-opus-4-8, gpt-5-5) replaced
+  by the 3-model set that matches upstream trial configs. The fable-5 and sonnet-5 entries
+  were not present as distinct trial configs in the upstream data.
+- **Z.ai `economics_gap` is closed.** Phase 5.2 unblocked for capacity measurement and
+  SVI/API comparison. Plan.md R.2/R.3 marked done; 5.2 status updated.
+- All 89 tests pass; 2 pre-existing lint errors (unrelated formatting) unchanged.
+
 ## 2026-07-13 — Tokenizer divergence evidence ingested; tokenizer generation made part of model identity
 
 - Indexed Playcode's "The Real Prices of Frontier Models" (playcode.io, HN 48896800):

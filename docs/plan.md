@@ -82,10 +82,9 @@ explicit operator decision.
 - [ ] 5.1 Codex (OpenAI) cell: meter verification, isolation, calibration batches,
       **and capacity establishment** (§5 — total weekly capacity in the same quota
       unit as the drain deltas; without it the cell has no SVI numerator).
-- [ ] 5.2 Z.ai: **parked** — `economics_gap` open until R.2. Note (R.1, 2026-07-13):
-      upstream DeepSWE v1.1 **now publishes `glm-5.2[max]`** (44%/$3.92/78k); the gap is a
-      stale local freeze, closeable by a re-pull. Capacity may be measured now; SVI/API
-      comparison unblocks once the re-pull lands.
+- [ ] 5.2 Z.ai: `economics_gap` **closed** (R.3, 2026-07-13). GLM-5.2[max] economics
+      now in the local freeze (Pass@1 44%, $3.92, 129 steps). Capacity measurement and
+      SVI/API comparison are unblocked; fold into a coordinated measurement week.
 
 **Same-window constraint (goal.md).** The goal's claim is comparative — "plan A
 delivered more than plan B *during this measurement window*" — and results expire at
@@ -125,12 +124,13 @@ local snapshot, not a missing record.
       OpenCode are valid neutral harnesses but moot for this gap (OpenCode also legally
       clouded by Anthropic + cost-incomparable). Report + ranked memo:
       [handoff-zai-economics-research.md](../handoff-zai-economics-research.md).
-- [ ] R.2 Operator decision. **Recommended (R.1 memo): re-pull DeepSWE v1.1 (now includes
-      glm-5.2[max]) and ingest the row as `[max]`-labeled with $3.92 as an API reference
-      price — a data-refresh, not a methodology change; stays import-only. Self-generation
-      on mini-swe-agent ($30–80 est.) is fallback only if a non-`[max]` tier is needed.**
-- [ ] R.3 Execute the chosen path; unblock 5.2 and fold Z.ai into a later
-      coordinated measurement week.
+- [x] R.2 Operator decision: re-pull chosen (2026-07-13).
+- [x] R.3 Re-pull executed (2026-07-13): regenerated `data/deepswe-v1.1-calibration-tasks.json`
+      from the archived 2026-07-10 upstream artifacts (tasks.json + trials.json) with the
+      3-model config set (claude-opus-4-8[max], glm-5-2[max], gpt-5-5[xhigh]).
+      GLM-5.2[max] now present: Pass@1 44%, avg cost $3.92, 129 steps, sample_size 450.
+      Schema upgraded to version 2 (matching `select-deepswe-tasks.ts` output).
+      Phase 5.2 Z.ai economics gap is closed; SVI/API comparison unblocked.
 
 ## Deferred (explicitly out of scope for now)
 
