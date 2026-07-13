@@ -2,6 +2,9 @@
 
 Key documents in `docs/` (read the relevant one before working):
 
+- [docs/plan.md](docs/plan.md) — **living plan**: sequenced steps to the first published
+  score, with blockers and ownership. Check it to see what's next; update it in the same
+  change set whenever a step completes, changes scope, or gets blocked.
 - [docs/goal.md](docs/goal.md) — project goal
 - [docs/protocol.md](docs/protocol.md) — measurement protocol. **Read before running or modifying any benchmark.** Section 2 carries a mandatory operator isolation check that must be confirmed and recorded before every run, or the run is invalid.
 - [docs/methodology.md](docs/methodology.md) — methodology
@@ -11,6 +14,7 @@ Key documents in `docs/` (read the relevant one before working):
 - [docs/cache-weighting-experiment.md](docs/cache-weighting-experiment.md) — design for the pivot cache-weighting question; coarse on integer meters (exploratory only)
 - [docs/cache-weighting-rig-task.md](docs/cache-weighting-rig-task.md) — build/run task for the pass-through capture rig + exploratory pivot run (companion to the design doc)
 - [docs/running-claude-max-calibration.md](docs/running-claude-max-calibration.md) — operator runbook: how to run a Claude Max calibration test
+- [docs/running-proxy-capture.md](docs/running-proxy-capture.md) — operator runbook: start the pass-through capture proxy, verify the envelope, aggregate captures
 - [docs/research.md](docs/research.md) — supporting research and external context
 - [docs/log.md](docs/log.md) — concise record of important project changes
 
