@@ -74,6 +74,51 @@ Jan Ilowski's article summarizes why per-token pricing is a weak comparison metr
 
 Source: https://janilowski.pl/en/blog/2026/price-per-m-tokens/
 
+### Playcode: Tokenizer Divergence — "The Real Prices of Frontier Models" (July 2026)
+
+Playcode counted 16 real fixtures (prose, HTML, JS/Python/TypeScript/Rust, JSON tool
+schemas, Chinese text, a live agent system prompt) byte-for-byte under each vendor's
+*real* tokenizer — Anthropic's `count_tokens` endpoint, OpenAI's documented `o200k_base`
+(verified against live `usage` counts on GPT-5.1/5.5/5.6, ratio 1.0000), and Google/xAI
+count endpoints — then verified the headline claim against real paid invoices. Findings:
+
+- Identical content, very different bills: the same 2,888-char TypeScript file is
+  **681 tokens on GPT-5.x** and **1,178 on Claude's new tokenizer** (1.73×), with
+  Grok 4.5 (718) and Gemini 3 Flash (788) near the o200k ruler.
+- **Anthropic's new tokenizer (Opus 4.8, Sonnet 5, Fable 5) emits ~30–31% more tokens
+  than its previous one (Opus 4.6, Sonnet 4.6) for identical content at the same list
+  price** — a silent price increase, confirmed on invoices: Opus 4.6 billed 2,541 input
+  tokens where Opus 4.8 billed 3,191 for the same content, each matching its
+  `count_tokens` prediction to the exact token. Fable 5 billed the same 3,191 (same
+  tokenizer as Opus 4.8, no hidden surcharge).
+- Blended over a realistic English coding request, Claude new-tokenizer models run
+  ~1.50× effective price versus sticker (e.g. Opus 4.8: $5/$25 list → $7.50/$37.50
+  effective on the o200k ruler). Sonnet 5's intro price ($2/$10 until Aug 31, 2026)
+  roughly cancels the inflation; from Sep 1 the sticker returns to $3/$15 and the +32%
+  token inflation stays.
+- Asymmetric measurement risk: OpenAI's `o200k` is frozen and publicly documented;
+  Anthropic's tokenizer is undocumented and changes between model generations. (HN
+  48896800 discussion adds: OpenAI's last tokenizer update made it *more* efficient.)
+
+Implications for SubBench:
+
+- External validation of the core thesis: compare in dollars per task, never $/Mtok
+  ([why-calibration.md](why-calibration.md)); the article's own recommendation is
+  "measure in dollars per task — the provider's `usage` field is the ground truth."
+- **Tokenizer generation is part of model identity** (protocol §1): if the subscription
+  meter is token-denominated, the same task drains ~30% more across the old→new
+  tokenizer boundary before any capability difference. Note the Systima-observed
+  Fable 5 ↔ Opus 4.8 substitution stays *within* the new generation; a 4.6 ↔ 4.8 mix
+  would not.
+- Sharpens the critique (see *API-Boundary Metering Proxies*, tiktoken counter-example)
+  of any tool estimating Claude tokens with an OpenAI tokenizer: the error is up to
+  1.73× on code, not a rounding artifact.
+- Anthropic's `count_tokens` endpoint matched billed counts token-exactly — usable as a
+  free integrity cross-check for proxy captures (rig task A5).
+
+Sources: https://playcode.io/blog/real-price-of-frontier-models ·
+https://news.ycombinator.com/item?id=48896800 (86 points, 2026-07-13)
+
 ### PointFive Coding Task Index
 
 PointFive proposes a simple fixed-task cost comparison using a standard coding task of 200K input tokens and 30K output tokens. This is useful for communication, but weaker than measuring actual benchmark task runs.

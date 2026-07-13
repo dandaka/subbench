@@ -320,6 +320,17 @@ break-even.
 - Real-world API cost is sensitive to prompt-cache hit ratio and batch discounts,
   which can shift cost several-fold depending on workload. V1 notes this as a caveat
   and uses published costs as-is.
+- Raw token counts are never compared across providers or tokenizer generations.
+  A token is not a fixed amount of text: identical content becomes 1.50–1.73× more
+  tokens under Claude's new tokenizer than under GPT's frozen `o200k` on code
+  (Playcode, July 2026 — research.md → *Tokenizer Divergence*). All cross-provider
+  comparison happens in dollars per task (published economics) or native tasks per
+  window — never in tokens.
+- A tokenizer change is a price change: Anthropic's new tokenizer (Opus 4.8 / Sonnet 5 /
+  Fable 5) emits ~30% more tokens than the previous one at an identical $/Mtok sticker,
+  so both published costs and any token-denominated subscription meter shift across
+  that boundary. Tokenizer generation is recorded as part of model identity
+  (protocol §1), and calibration factors do not carry across generations.
 
 ## Nonstationarity
 

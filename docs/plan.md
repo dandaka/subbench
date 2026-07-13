@@ -64,8 +64,11 @@ explicit operator decision.
       ([running-claude-max-calibration.md](running-claude-max-calibration.md)) with
       the proxy capturing. Every batch doubles as cache-weighting evidence.
 - [ ] 3.2 Capacity reading at grade `exact` (claude.ai SSE float, protocol §5).
-- [ ] 3.3 Record runs with the new fields (served model, proxy present, pauses,
-      fan-out, flag state); compute batch-level drain.
+- [ ] 3.3 Record runs with the new fields (served model + tokenizer generation,
+      proxy present, pauses, fan-out, flag state); compute batch-level drain.
+      Batches never span tokenizer generations (protocol §1/§4, 2026-07-13).
+- [ ] 3.4 Optional rig integrity check: reconcile a captured request against
+      Anthropic `count_tokens` (rig task A5; run outside the measurement window).
 
 ## Phase 4 — Exploratory cache-weighting regression (Part B) — BLOCKED BY: Phase 3 data
 

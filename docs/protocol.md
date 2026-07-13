@@ -14,6 +14,16 @@ surface exposes the served model (response metadata, transcript, or verbose/debu
 output), record it per run; where it does not, record `served model: unobservable` once
 per cell so the gap is explicit rather than silent.
 
+**The tokenizer generation is part of the model identity.** Anthropic's new tokenizer
+(Opus 4.8, Sonnet 5, Fable 5) emits ~30% more tokens than the previous one (Opus 4.6,
+Sonnet 4.6) for identical content at the same list price (Playcode, July 2026 —
+research.md → *Tokenizer Divergence*). If the meter is token-denominated, the same task
+drains ~30% more across that boundary before any capability difference. Record the
+tokenizer generation alongside the served model, and never compare drain or reuse
+calibration factors across tokenizer generations without renormalizing. Note that the
+Fable 5 ↔ Opus 4.8 substitution observed by Systima stays within one generation; a
+4.6 ↔ 4.8 substitution would not, and would put the two runs on different denominators.
+
 **Verify the run drains the subscription meter, not API/credit billing.** Some invocation
 modes silently bill at raw API or per-credit rates instead of the flat-rate subscription
 quota — e.g. Claude Code headless `claude -p` / the Agent SDK credit path can fall under
@@ -72,7 +82,8 @@ last post-run snapshot): paired snapshots telescope, so the batch delta carries 
 points are dominated by rounding — record them, but do not interpret them individually
 or draw per-task conclusions (such as drain versus API-cost proportionality) from them.
 A gap between tasks (interruption, other usage) ends the batch; start a new one at the
-next task.
+next task. A served-model substitution that crosses tokenizer generations (§1) also ends
+the batch — its drain sits on a different token denominator.
 
 Per-task percent drain shrinks as plan quota grows, so size batches to the plan: on
 large-quota tiers (Claude Max-class), plan longer contiguous batches — error on mean

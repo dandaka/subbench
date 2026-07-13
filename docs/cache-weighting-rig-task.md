@@ -93,6 +93,13 @@ Guard the known failure mode of subagent lanes not completing cleanly.
   ccusage token counts within rounding.
 - Audit chain verifies end to end on a multi-record capture.
 - Pass-through verified field recorded (methodology → Data Schema: `logging proxy present`).
+- (Optional integrity cross-check) Anthropic's `count_tokens` endpoint returns the exact
+  count billed — verified token-exact against paid invoices (Playcode, July 2026;
+  research.md → *Tokenizer Divergence*). Replaying a captured request payload through
+  `count_tokens` must reconcile with the capture's usage total
+  (`input_tokens + cache_creation_input_tokens + cache_read_input_tokens`). Free and
+  catches capture/SSE-reassembly bugs; it needs an API key and must run **outside** the
+  measurement window so the probe cannot touch the subscription meter.
 
 ## Part B — run design (exploratory)
 

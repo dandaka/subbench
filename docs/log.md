@@ -3,6 +3,26 @@
 This log records durable changes and decisions that affect future work. It is not a
 measurement run log and does not establish publication evidence.
 
+## 2026-07-13 — Tokenizer divergence evidence ingested; tokenizer generation made part of model identity
+
+- Indexed Playcode's "The Real Prices of Frontier Models" (playcode.io, HN 48896800):
+  byte-identical content tokenizes at 1.50–1.73× on Claude's new tokenizer vs GPT's
+  frozen `o200k` on code, and **Anthropic's new tokenizer (Opus 4.8 / Sonnet 5 / Fable 5)
+  emits ~30% more tokens than the old one (Opus 4.6 / Sonnet 4.6) at the same list
+  price** — invoice-verified. Strong external validation of the dollars-per-task thesis
+  (why-calibration.md); one new measurement risk for us: same-task drain shifts ~30%
+  across the tokenizer boundary if the meter is token-denominated.
+- Doc changes in this change set: new [research.md](research.md) section (*Tokenizer
+  Divergence*); [protocol.md](protocol.md) §1 records tokenizer generation as part of
+  model identity and forbids cross-generation drain comparison, §4 ends a batch on a
+  cross-generation served-model substitution; [methodology.md](methodology.md) Scope
+  and caveats — never compare raw tokens across providers/generations, tokenizer change
+  = price change; [cache-weighting-rig-task.md](cache-weighting-rig-task.md) A5 gains an
+  optional `count_tokens` reconciliation check (invoice-exact per Playcode; run outside
+  the measurement window); [plan.md](plan.md) 3.3 updated + 3.4 added.
+- No change to the economics import: DeepSWE publishes dollars per task per model, which
+  already folds tokenizer effects in; the caveat only bars *token-unit* comparisons.
+
 ## 2026-07-13 — Reconciled the living plan with the merged Phase 1 build
 
 - The capture rig (Part A) had been built, tested green, and merged (`1b07269` /
