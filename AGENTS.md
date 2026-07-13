@@ -8,7 +8,8 @@ Key documents in `docs/` (read the relevant one before working):
 - [docs/why-calibration.md](docs/why-calibration.md) — why calibration is needed (the "why not just use tokens?" answer)
 - [docs/open-questions.md](docs/open-questions.md) — open questions, including whether to reverse-engineer subscription structure
 - [docs/calibration-tasks.md](docs/calibration-tasks.md) — calibration task set
-- [docs/cache-weighting-experiment.md](docs/cache-weighting-experiment.md) — design (do not execute) for the pivot cache-weighting question; infeasible on integer meters
+- [docs/cache-weighting-experiment.md](docs/cache-weighting-experiment.md) — design for the pivot cache-weighting question; coarse on integer meters (exploratory only)
+- [docs/cache-weighting-rig-task.md](docs/cache-weighting-rig-task.md) — build/run task for the pass-through capture rig + exploratory pivot run (companion to the design doc)
 - [docs/running-claude-max-calibration.md](docs/running-claude-max-calibration.md) — operator runbook: how to run a Claude Max calibration test
 - [docs/research.md](docs/research.md) — supporting research and external context
 - [docs/log.md](docs/log.md) — concise record of important project changes

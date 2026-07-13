@@ -7,6 +7,25 @@ versions, plan terms snapshot, measurement dates, peak-hours state, and promotio
 Measure the default and one flagship model per plan. Never combine promotion and baseline
 runs.
 
+The pinned model is not guaranteed to be the served model: providers substitute snapshots
+or route across tiers sharing infrastructure (Systima observed Fable 5 requests answered
+alternately by `claude-fable-5` and `claude-opus-4-8`, July 2026). Where the product
+surface exposes the served model (response metadata, transcript, or verbose/debug
+output), record it per run; where it does not, record `served model: unobservable` once
+per cell so the gap is explicit rather than silent.
+
+**Verify the run drains the subscription meter, not API/credit billing.** Some invocation
+modes silently bill at raw API or per-credit rates instead of the flat-rate subscription
+quota — e.g. Claude Code headless `claude -p` / the Agent SDK credit path can fall under
+API-plan billing rather than the Max weekly meter (HN 48129753, 2026). A run that drains a
+credit balance or API spend rather than the subscription window measures the wrong meter
+and is invalid. Before the first measured task in a cell, confirm the subscription meter
+actually moves: read the subscription usage indicator (§5) before and after a throwaway
+warmup task and verify the subscription window drained (not a credit/dollar overage
+balance). Record `meter_verified: subscription` per cell; if the mode bills API/credits
+instead, the cell is measured on the wrong denominator and must be reconfigured (use the
+interactive subscription surface) before any run counts.
+
 ## 2. Prepare isolation
 
 Build the repository `Dockerfile`, or use a fresh OS account when the subscription client
@@ -70,6 +89,38 @@ caching). Replicates of the same task must be spaced by at least the TTL; distin
 tasks back-to-back are fine — they share only the harness system-prompt prefix, which
 matches real continuous usage. The benchmark source does not handle this; it is an
 account-scheduling concern, auditable from recorded run timestamps.
+
+Pause hygiene: do not pause mid-run for longer than the provider's cache TTL. When a
+pause exceeds the TTL, the harness re-writes its full prompt-cache prefix at premium
+write rates on the next request (Anthropic bills cache writes at 1.25×; Systima measured
+mid-session re-writes of 37–86k tokens on Claude Code — see research.md), so an operator
+pause changes observed drain independently of the task. If a pause > TTL occurs anyway,
+record it as a pause event on the run; a pause also ends the contiguous batch, same as
+any other gap.
+
+Cache-busting harness flags (Claude Code): two documented behaviors re-write the prompt
+cache independently of the task and add drain noise, so pin them to a fixed, recorded
+state across all runs in a cell (research.md → Prompt-Cache Economics in Practice):
+
+- **Telemetry ↔ cache-TTL coupling.** Disabling telemetry
+  (`CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1` / `DISABLE_TELEMETRY=1`) silently forced the
+  5-minute TTL instead of the 1-hour TTL for Max subscribers (claude-code#45381, fixed in
+  2.1.108). A shorter TTL re-primes the cache more often, inflating cache-write drain. Pin
+  the telemetry flags and the resulting TTL, and record both; do not toggle telemetry
+  mid-cell.
+- **git-status cache invalidation.** Claude Code's prompt embeds git-status in a middle
+  cache block, so **every commit busts that block** and re-pays a ~6k-token cache write on
+  the next request. During a calibration batch, either keep the working tree quiescent (no
+  commits mid-batch) or set `CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS=1`; record which.
+
+Record the pinned flag state as run/cell fields so the cache regime is auditable and
+identical across compared cells.
+
+Record whether the harness spawned subagents during the run (visible in the transcript
+or UI). Subagent fan-out is the largest single drain multiplier measured to date (~4.2×
+metered input for a two-subagent fan-out, Systima July 2026): one fan-out task can
+dominate a batch delta, so the flag is needed to explain outlier batches and to keep the
+calibration sample representative.
 
 The account must be dedicated to measurement, or verified idle on every other product
 surface for the whole window — providers share quota across surfaces (Claude across

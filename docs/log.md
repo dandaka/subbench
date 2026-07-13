@@ -3,6 +3,140 @@
 This log records durable changes and decisions that affect future work. It is not a
 measurement run log and does not establish publication evidence.
 
+## 2026-07-13 — Task spec for the capture rig + exploratory pivot run
+
+- Added [cache-weighting-rig-task.md](cache-weighting-rig-task.md): the build/run companion
+  to [cache-weighting-experiment.md](cache-weighting-experiment.md) §4. Operator-approved to
+  execute the pivot experiment as an **exploratory** study (build the rig + run design),
+  with the coarse rounded-meter limitation treated as an accepted caveat — results are
+  directional, never a settled H0/H1 verdict, and are **not** fed into any published SVI.
+- The task reaffirms two constraints that "not used for calibration" does NOT waive:
+  a protocol §2 isolation attestation is still required (concurrent account usage corrupts
+  the drain deltas the experiment regresses on), and meter verification (protocol §1) plus
+  the pinned cache-busting flags (protocol §4) apply.
+- Rig (Part A) is to reimplement — not vendor — the claude-meter capture pattern
+  (unlicensed) in `packages/proxy/`: zero-envelope pass-through, four-token usage-block
+  capture, served-model, `anthropic-ratelimit-unified-*` utilization floats, SSE
+  reassembly, plus additions it lacks (lossless capture, SHA-256 hash-chained audit log,
+  permissive license). Indexed in AGENTS.md. No rig code committed in this change set
+  (docs-only); an untracked `packages/proxy/` skeleton exists and is left for the build task
+  to reconcile.
+
+## 2026-07-13 — Applied sweep hardening edits; claude-meter evaluated (BORROW)
+
+- Operator-approved three methodology/protocol hardening edits from the HN sweep:
+  1. **[methodology.md](methodology.md)** Harness Mismatch Disclaimer — annotated the
+     ~33k-token Claude Code floor as version-specific/high-end; progressive tool disclosure
+     puts the comparable current floor at ~15–24k tok. The ~4–5× CC:OpenCode ratio and
+     cache-re-write mechanism still stand; the exact floor does not.
+  2. **[protocol.md](protocol.md) §1** — added a meter-verification requirement: confirm a
+     run drains the subscription window, not API/credit billing (headless `claude -p` /
+     Agent SDK credit path can fall to API-plan billing — HN 48129753); record
+     `meter_verified: subscription` per cell; a cell on the wrong denominator is invalid.
+  3. **[protocol.md](protocol.md) §4** — pin two Claude Code cache-busting behaviors per
+     cell: telemetry↔cache-TTL coupling (claude-code#45381) and git-status busting the
+     middle cache block on every commit (`CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS=1` or keep
+     the tree quiescent mid-batch). Both re-write the cache independently of the task.
+- Added matching Data Schema run/cell fields to [methodology.md](methodology.md):
+  `meter verified` and `cache-busting flag state`.
+- Evaluated **claude-meter** (abhishekray07) as the capture rig for the cache-weighting
+  experiment. Verdict **BORROW**, not adopt/fork: the repo has **no license** (all rights
+  reserved — cannot vendor), but its design is exactly right and cheap to reimplement — a
+  true zero-envelope stdlib-Go pass-through tee that captures all four token classes from
+  JSON and SSE, plus per-window `anthropic-ratelimit-unified-*` utilization floats + reset
+  timestamps, and a Python `usage_value(cache_read_weight=...)` knob that already prototypes
+  the §4 regression. It **confirms** cache-weighting-experiment.md §4's "coarse/rounded
+  meter" caveat (its own estimates span ~10× bands) rather than refuting it. SubBench must
+  add: a permissively-licensed reimplementation, hash-chained audit log, lossless (non-
+  dropping) capture, Codex/Z.ai normalizers, the constrained drain-regression solver, and
+  the §2 isolation gate. Recorded in research.md; no §4 design change required.
+
+## 2026-07-13 — HN deep-research sweep: prior art on API-boundary metering, harness overhead, quota RE, cache economics
+
+- Ran the deep-research handoff ([handoff-hn-deep-research.md](../handoff-hn-deep-research.md)):
+  exhaustive Hacker News sweep (anchor thread item 48883275 read in full; ~18 Algolia query
+  angles; loop-until-dry) plus GitHub source inspection of every recorded tool and an
+  adversarial re-verification of the pivot claim. Raw content stayed in the sandbox; only
+  distilled findings entered [research.md](research.md).
+- Added four new subsections to [research.md](research.md): **API-Boundary Metering
+  Proxies**, **Harness Token-Overhead — Independent Corroboration**, **Meter-Recovery
+  Tooling and Endpoints** + **The Cache-Weighting Pivot**, **Prompt-Cache Economics in
+  Practice**, and **Subscription-vs-API Value Comparisons**; plus a **Synthesis for
+  SubBench** section.
+- Top find: **claude-meter** (abhishekray07) — a local pass-through research proxy that
+  captures the response usage block AND the `anthropic-ratelimit-unified-5h/7d` utilization
+  headers AND reassembles SSE usage, with a cache-read-weight knob. Captures *more* than
+  Systima's rig and fits the approved ToS posture; flagged as the rig to build on for the
+  cache-weighting experiment.
+- Pivot result (cache-weighting): **not answered with measured evidence.** Adversarial
+  verification refuted the strong reading of lugia19/Claude-Usage-Extension's constants —
+  they are a self-labeled "vibes/napkin-math" estimator, the meter % is served verbatim by
+  Anthropic's `/usage`, and the "cache-writes-drain-heavily" claim has no basis in the code
+  (bcherny #45381 is about telemetry/TTL, misattributed). Established directionally:
+  subscription cache reads are ~free in dollars while writes consume quota, and
+  subscriber vs API cache TTL now diverge — subscription meter ≠ API dollar cost.
+- Corroboration: Systima's ~33k floor is version-specific (progressive tool disclosure ⇒
+  ~15–24k tok on current builds); the ~4–5x CC:OpenCode ratio and cache-re-write mechanism
+  survive independent checks (leaked prompts, tokenscope, CodeBurn, dirac).
+- Flagged four **suggested methodology/protocol changes for operator decision** (not
+  applied): annotate the 33k figure as version-specific; pin Claude Code cache-busting
+  flags (telemetry TTL coupling, `CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS`) in the harness;
+  require verifying which meter a run drains (`claude -p` may hit API billing); note the
+  usage-anchored weekly window. See the Synthesis section of research.md. No methodology,
+  protocol, or economics file was modified in this change set.
+
+## 2026-07-13 — Indexed Systima harness-overhead study in research.md
+
+- Added the Systima "Claude Code vs OpenCode token overhead" study (July 2026) to
+  [research.md](research.md). Key evidence: Claude Code's baseline is
+  model-conditional (~33k tokens on Sonnet, smaller on Fable); reproducible
+  mid-session cache re-writes of the full ~43k prefix (37-86k tokens/event); cache
+  writes re-paid after any pause > the 5-min TTL; subagent fan-out is a 4.2x input
+  multiplier; served model under Fable alternated between `claude-fable-5` and
+  `claude-opus-4-8`; and their open-source proxy rig shows exact per-request token
+  mixes are observable for Claude Max subscription traffic via a gateway.
+
+## 2026-07-13 — ToS decision: boundary-level proxy capture approved, proxy-only
+
+- Operator decision: SubBench may capture its own traffic at the API boundary with a
+  **pass-through logging proxy** (option B of the C-level review). The gateway variant
+  (Meridian-style bridging of subscription auth into non-native clients) is **not**
+  approved.
+- [methodology.md](methodology.md): ToS Position extended (measurement accounts only,
+  pure pass-through, raw captures private, technique disclosed); Harness Isolation gains
+  a matching instrumentation exception (pinned proxy version, pass-through verified via
+  bare calibration request, presence recorded per run); run schema gains a
+  `logging proxy present` field.
+- [cache-weighting-experiment.md](cache-weighting-experiment.md) §4 route restated as
+  **approved in proxy-only form** (envelope constant = 0 for a verified pass-through);
+  execution still requires protocol §2 isolation attestation. Mirrors updated in
+  [open-questions.md](open-questions.md) and methodology V1 Open Questions.
+
+## 2026-07-13 — Applied Systima-derived methodology updates (operator-approved)
+
+Examined the open-source rig (github.com/systima-ai/agentic-coding-tools-comparison;
+details recorded in [research.md](research.md)) and applied the identified updates:
+
+- [protocol.md](protocol.md) §4: new **pause hygiene** rule — no mid-run pauses beyond
+  the cache TTL (an over-TTL pause re-primes the full prefix at 1.25× write rates);
+  over-TTL pauses are recorded as pause events and end the contiguous batch. §4 also
+  now requires recording **subagent fan-out** per run (~4.2× input multiplier measured).
+- [protocol.md](protocol.md) §1: **served-model recording** — pinned model ≠ served
+  model (Fable 5 requests answered alternately by `claude-fable-5` / `claude-opus-4-8`);
+  record served model per run where observable, else `unobservable` per cell.
+- [methodology.md](methodology.md): Measurement Conditions notes mid-session cache
+  re-writes as task-independent drain noise (reinforcing batch deltas); Harness Mismatch
+  Disclaimer states harness overhead is **model-conditional**, so calibration factors
+  are per (model, harness version); run schema gains `served model`,
+  `subagent fan-out observed`, and `pause events` fields.
+- [cache-weighting-experiment.md](cache-weighting-experiment.md) §4: added a third
+  feasibility route — **proxy-captured exact token mixes regressed against batch-level
+  drain deltas** (Systima rig; Meridian gateway bridges Claude Max). Marked
+  design-approved for consideration, **not authorized**: gateway is a Harness Isolation
+  deviation (envelope must be measured and documented) and extends the ToS Position,
+  which must be resolved by operator decision before any run. Mirrored in
+  [open-questions.md](open-questions.md) and methodology V1 Open Questions.
+
 ## 2026-07-12 — Cache-weighting experiment design (do not execute)
 
 - Added [cache-weighting-experiment.md](cache-weighting-experiment.md): design-only

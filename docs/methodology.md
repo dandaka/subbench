@@ -75,6 +75,21 @@ native harness (Claude Code, Codex CLI, etc.). Native harnesses differ in system
 tools, and caching, so both cost-per-task and success rate will deviate from published
 numbers.
 
+Harness overhead is also model-conditional, not a harness constant: Claude Code sends a
+different system prompt and trimmed tool schemas per model (~33k-token baseline on
+Sonnet 4.5 vs materially less on Fable 5; its multi-step batching behavior also differed
+between models — Systima July 2026, see research.md). The 33k figure is version-specific
+and high-end: it was measured on an older pinned build with full tool schemas resident
+(plus Systima's own ~6.2k gateway envelope). Claude Code has since moved to progressive
+tool disclosure (tools loaded on demand), and independent measurements — leaked
+system-prompt artifacts and live `/context` readouts — put the comparable current fixed
+floor closer to ~15–24k tokens (research.md → Harness Token-Overhead — Independent
+Corroboration). The ~4–5× Claude-Code-vs-OpenCode ratio and the mid-session cache-re-write
+mechanism survive independent checks; the exact token floor does not, which is precisely
+why calibration factors are per (model, harness version) quantities. The already-required
+version pinning is what makes them stable, and a harness or model update invalidates
+cached factors.
+
 V1 accepts this deliberately: a single neutral harness is more isolated and more
 comparable across models than four different product harnesses. Every V1 result carries
 this disclaimer. Running the full task set natively through each subscription product
@@ -123,8 +138,18 @@ task drains materially less quota than a cold run, corrupting the drain estimate
 Within-run caching is intrinsic to the harness and representative of real use; the
 distortion is cross-run. The benchmark source cannot control this — cache state is a
 property of the measurement account and run scheduling, so the protocol carries the
-operational rule (§4): never launch an identical task twice within the provider's cache
-TTL. Run timestamps (already required) make cache adjacency auditable.
+operational rules (§4): never launch an identical task twice within the provider's cache
+TTL, and never pause mid-run for longer than the TTL (an over-TTL pause re-primes the
+full prompt-cache prefix at premium write rates on the next request, changing drain
+independently of the task). Run timestamps (already required) make cache adjacency
+auditable.
+
+Harness cache behavior is itself a drain-variance source: Claude Code reproducibly
+re-writes its full ~43k-token prefix mid-session (37–86k cache-write tokens per event,
+Systima July 2026 — see research.md). If the quota meter prices cache writes like the
+API (1.25×), such events add task-independent noise to per-run drain. This reinforces
+the batch-delta rule: per-task drains absorb this noise individually, batch-level means
+average it out.
 
 ## Harness Isolation
 
@@ -143,7 +168,14 @@ All runs use a clean, reproducible environment:
 - identical repo checkout and task prompt across providers
 - a published setup script so anyone can reproduce the harness from zero
 
-Any deviation from the clean environment invalidates the run.
+Any deviation from the clean environment invalidates the run, with one permitted
+instrumentation exception (operator-approved 2026-07-13): a local **pass-through logging
+proxy** at the API boundary that forwards requests unmodified and records payloads and
+usage blocks. Conditions: the proxy version is pinned and recorded per run; its
+pass-through nature is verified (identical payload in and out, no added envelope —
+confirm with a bare calibration request before first use); and its presence is recorded
+as a run field. Gateways or bridges that rewrite requests or repurpose subscription auth
+are not covered by this exception (see ToS Position).
 
 ## Account Isolation
 
@@ -308,6 +340,16 @@ service. SubBench accepts this risk: measurements are ordinary product usage at 
 volumes, performed on paid accounts, published in aggregate. No internal APIs are reverse
 engineered beyond reading usage indicators the product already displays.
 
+Extension (operator-approved 2026-07-13): SubBench may additionally capture its **own**
+traffic at the API boundary with a local **pass-through logging proxy** (e.g. pointing
+`ANTHROPIC_BASE_URL` at a forwarder that records each request's payload and returned
+usage block). Scope limits: measurement accounts only; the proxy is a pure pass-through
+that modifies nothing and adds no envelope; raw captures are never published (they embed
+provider system prompts) — only aggregates are; the technique is disclosed in the
+published methodology. **Not** approved: driving a subscription through a third-party
+gateway/bridge that repurposes subscription auth for non-native clients (the
+Meridian-style setup) — that remains outside SubBench's ToS Position.
+
 ## Task Cost Sources
 
 SubBench does not invent or re-run tasks. Task economics come from a published benchmark
@@ -399,6 +441,7 @@ Minimum run fields:
 - plan
 - model
 - model version
+- served model (from response metadata/transcript where observable; else `unobservable`)
 - product surface
 - product version
 - harness environment id
@@ -415,6 +458,11 @@ Minimum run fields:
 - retries
 - limit event
 - aborted (hit drain cap)
+- subagent fan-out observed
+- pause events (mid-run pauses exceeding cache TTL)
+- logging proxy present (version; pass-through verified)
+- meter verified (subscription vs API/credit billing — per cell)
+- cache-busting flag state (telemetry/TTL, git-instructions — per cell)
 - notes
 
 ## V1 Report Shape
@@ -457,7 +505,10 @@ Plan A is the best AI subscription.
   If yes, drain is linear in API-equivalent cost and one conversion factor suffices.
   If the meter weights cache tokens differently (raw token counts, per-message credits),
   the factor depends on the workload's cache ratio. Test: compare drain-per-API-dollar
-  between one cache-heavy task and one cache-light task per plan.
+  between one cache-heavy task and one cache-light task per plan. Approved route
+  (2026-07-13, proxy-only): pass-through-proxy-captured exact token mixes regressed
+  against batch drain deltas — see cache-weighting-experiment.md §4, ToS Position, and
+  the Harness Isolation instrumentation exception.
 - Does FrontierCode publish per-task cost/token data anywhere (API, dataset release)?
 - ~~Should the first public score use weekly or monthly normalization?~~ **Resolved
   2026-07-12: weekly.** All three confirmed providers (Claude Max, OpenAI Plus/Codex,

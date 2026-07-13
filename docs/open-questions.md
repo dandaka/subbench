@@ -62,6 +62,14 @@ These are mirrored tersely in methodology.md → *V1 Open Questions*.
   Test: compare drain-per-API-dollar between one cache-heavy and one cache-light task per
   plan. **This is the pivot question** — a "yes" makes the reductionist token model
   correct; a "no" is the only thing that forces us to model structure at all.
+  Feasibility update 2026-07-13: the two-arm drain test stays infeasible on integer
+  meters, but a viable route now exists — capture exact per-request token mixes at the
+  API boundary with a **pass-through logging proxy** (Systima rig) and regress
+  batch-level drain deltas on them. **Operator-approved 2026-07-13 in proxy-only form**
+  (gateway/subscription-bridging variant not authorized); covered by the extended ToS
+  Position and the Harness Isolation instrumentation exception in
+  [methodology.md](methodology.md). See
+  [cache-weighting-experiment.md](cache-weighting-experiment.md) §4.
 - **Economics source coverage.** Does FrontierCode publish per-task cost/token data
   anywhere (API, dataset release)? Determines whether a second, code-quality-graded
   economics source is available.

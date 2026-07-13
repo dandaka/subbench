@@ -16,3 +16,9 @@ build/
 # DeepSWE source artifacts contain benchmark material and are archived locally, not vendored.
 data/deepswe-v1.1-*/artifacts/
 data/deepswe-v1.1-*/source/
+# Raw proxy captures embed Anthropic system prompts — private, never committed.
+# Default location is under .subbench/ (already ignored); these rules cover any
+# conventionally-named captures directory the operator points the proxy at.
+proxy-captures/
+**/proxy-captures/
+*.capture.json

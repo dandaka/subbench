@@ -1,8 +1,9 @@
 # Cache-weighting experiment design (DESIGN ONLY — do not execute)
 
-Status: design, 2026-07-12. This document specifies the experiment that answers the
+Status: design, 2026-07-12; §4 proxy-only capture route operator-approved 2026-07-13
+(gateway variant not authorized). This document specifies the experiment that answers the
 **pivot open question** (methodology → V1 Open Questions; open-questions.md → *Cache
-pricing / factor stability*). It does not authorize a run. Any execution is a
+pricing / factor stability*). It does not itself authorize a run. Any execution is a
 calibration run and requires protocol §2 isolation attestation.
 
 ## 1. Question
@@ -90,11 +91,41 @@ The experiment is therefore infeasible at useful resolution **without one of**:
   against the ~0.45-point expected gap — on the order of **15–30 matched tasks per arm**
   (30–60 total), spaced per §4. That is a large, expensive dedicated run and consumes
   meaningful weekly quota; it is not a light probe.
+- **Exact token-side capture via a logging proxy (candidate revision, 2026-07-13).**
+  Systima's open-source rig (github.com/systima-ai/agentic-coding-tools-comparison)
+  demonstrates that subscription traffic is observable at the API boundary: a ~200-line
+  capturing proxy on `ANTHROPIC_BASE_URL` records, per request, the exact payload and
+  the returned usage block (input, cache-write, cache-read, output tokens); Claude Max
+  traffic can be bridged through a gateway (Meridian). This does not make the *drain*
+  side exact — the meter stays `rounded` — but it replaces the crude two-arm design with
+  a regression: run ordinary §4 contiguous batches with the proxy in place, then regress
+  batch-level drain deltas on the batches' exactly-measured token mixes
+  (cold-input / cache-write / cache-read / output). H0 (API-like weighting) predicts
+  drain ∝ API-dollar value of the mix; deviations identify which component the meter
+  actually weights. Far fewer dedicated runs than 15–30 per arm, because every
+  calibration batch becomes evidence. Caveats before adoption: (a) a proxy/gateway is a
+  **harness-isolation deviation** (methodology → Harness Isolation) — its envelope must
+  be measured with bare calibration requests and documented per run, as Systima did
+  (~6.2k tokens on their Sonnet path); (b) it leans further into ToS-gray territory than
+  reading displayed indicators — the ToS Position section must be extended explicitly
+  before any such run; (c) captures embed full system prompts, so raw captures stay
+  private, aggregates publish; (d) the capture also yields the served-model field per
+  request (protocol §1), which the meter question needs anyway if tiers are substituted.
+  **Authorization status (operator decision 2026-07-13): approved in proxy-only form** —
+  a pass-through logging proxy on the native client's `ANTHROPIC_BASE_URL`, per the
+  extended ToS Position and the Harness Isolation instrumentation exception
+  (methodology.md). The gateway variant (Meridian-style subscription bridging) is
+  **not** authorized. Caveat (a) resolves trivially in proxy-only form: a verified
+  pass-through adds no envelope, so `GATEWAY_ENVELOPE_TOKENS = 0`; verify with a bare
+  calibration request before first use. Execution is still a calibration run requiring
+  protocol §2 isolation attestation.
 
 Record this infeasibility explicitly: **on integer meters the cache-weighting test cannot
-be run cheaply.** Until an exact-drain surface appears, either (a) defer the test and keep
-the black-box single-factor assumption as a stated caveat, or (b) budget the large-
-repetition version as a standalone study under full §2 isolation.
+be run cheaply by drain deltas alone.** Until an exact-drain surface appears, either
+(a) defer the test and keep the black-box single-factor assumption as a stated caveat,
+(b) budget the large-repetition version as a standalone study under full §2 isolation, or
+(c) pursue the proxy-capture regression route above once its isolation and ToS caveats
+are resolved.
 
 ## 5. Run count and pacing (if executed under large-repetition)
 
