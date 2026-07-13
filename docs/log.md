@@ -3,6 +3,69 @@
 This log records durable changes and decisions that affect future work. It is not a
 measurement run log and does not establish publication evidence.
 
+## 2026-07-13 — Built the pass-through capture rig (Part A of the cache-weighting task)
+
+- Completed **Part A** of [cache-weighting-rig-task.md](cache-weighting-rig-task.md): the
+  `@subbench/proxy` pass-through capture rig now builds to acceptance (A1–A5). Part B (the
+  measured run) is **not** executed — it needs operator-only gates (protocol §2 isolation
+  attestation, §1 meter verification).
+- Reconciled with the uncommitted skeleton rather than forking. **Kept:** `capture.ts`
+  (usage/SSE/JSON extraction + `mergeUsage`/`SseUsageAccumulator`/`parseSseChunk`),
+  `forward.ts` pass-through core, `version.ts`, `package.json`/`tsconfig.json`, the root
+  `tsconfig` reference, and the capture gitignore rules from commit 8933737 (verified they
+  cover the default `.subbench/proxy-captures/` path). **Extended:** `capture.ts` gained a
+  `rate_limits` field; `forward.ts` gained injectable `fetch`, ratelimit-header plumbing, a
+  fixed SSE end-of-stream flush (no double-count), and lost dead `extractUsage`. **Added:**
+  `ratelimit.ts` (the `anthropic-ratelimit-unified-5h/-7d` status+utilization+reset parse —
+  the crux Systima's rig lacked), `audit.ts` (SHA-256 hash-chained log + `verifyChain`,
+  pattern adapted from Systima's MIT `ingest-audit.mjs`, not copied), `sink.ts` (lossless
+  serialized-append JSONL + audit sink — the property claude-meter's async tee lacks),
+  `aggregate.ts` (run-joinable rollup), `server.ts` (Bun listener), `verify.ts` (envelope
+  check), `index.ts` barrel, and CLIs for verify/aggregate/audit.
+- No code copied from claude-meter (unlicensed) — patterns reimplemented. Package declared
+  MIT (repo LICENSE), satisfying A4's permissive-license requirement. Bumped proxy version
+  `0.1.0 → 0.2.0` (forwarding, capture shape, and SSE parsing all changed).
+- **A5 acceptance verified:** `bun test` green (37 proxy tests / 89 repo-wide); an E2E
+  smoke run proved byte-identical forwarding with `GATEWAY_ENVELOPE_TOKENS=0`, a 4-record
+  audit chain verifying end to end, and aggregation emitting token totals, large
+  cache-write events, distinct served models, and utilization series. Verification cost:
+  trivial one-line requests against a **fake** upstream only — zero real subscription quota
+  consumed.
+- Operator runbook: [running-proxy-capture.md](running-proxy-capture.md) (start → point
+  Claude Code → verify envelope → run → verify chain + aggregate).
+
+## 2026-07-13 — Publication surface decided; website deferred; Z.ai economics research planned
+
+- Operator decisions: (1) **publish in the repo** — the first weekly SVI report and its
+  data ship as versioned, auditable artifacts in this repository (plan.md 6.3 resolved);
+  (2) a **website is out of scope for now**, deferred until quality results exist
+  in-repo.
+- Added a **Research track** to [plan.md](plan.md) (R.1–R.3): close the Z.ai
+  `economics_gap` so Z.ai becomes SVI-comparable. R.1 is a deep-research sweep
+  (handoff: `handoff-zai-economics-research.md`, repo root) evaluating four paths —
+  find a published GLM-5.2 economics source; adapt a near-miss source (high bar);
+  generate economics ourselves by running DeepSWE tasks on mini-swe-agent against the
+  GLM-5.2 API (would need a scoped methodology change); or wait for source coverage.
+  Output is a decision-ready memo in research.md; path choice is an operator decision
+  (R.2). The standing constraint holds: Z.ai SVI stays null-with-a-reason until a
+  compatible source exists — never a fabricated economics row.
+
+## 2026-07-13 — Added living plan (docs/plan.md); refreshed proxy build handoff
+
+- Added [plan.md](plan.md): a sequenced, living checklist from the current state to the
+  first published weekly SVI — Phase 1 build the capture rig (unblocked, agent work) →
+  Phase 2 pre-run gates (meter verification, cache-flag pinning, operator §2 attestation)
+  → Phase 3 Claude Max calibration behind the proxy (burn-in; batches double as
+  cache-weighting evidence) → Phase 4 exploratory drain-vs-token-mix regression
+  (directional only) → Phase 5 Codex cell (Z.ai parked on `economics_gap`) → Phase 6
+  validate and publish. Each phase carries WHO (agent/operator) and BLOCKED BY. Update
+  rule: keep plan.md current in the same change set as any status change. Indexed in
+  AGENTS.md.
+- Rewrote `handoff-proxy-capture.md` (repo root) as the fresh-session build prompt for
+  Part A only: reconcile-don't-fork the `packages/proxy/` skeleton, claude-meter
+  requirements included (ratelimit-header capture, lossless tee, audit chain, no code
+  copying — unlicensed), A5 acceptance checks, Part B explicitly out of scope.
+
 ## 2026-07-13 — Task spec for the capture rig + exploratory pivot run
 
 - Added [cache-weighting-rig-task.md](cache-weighting-rig-task.md): the build/run companion

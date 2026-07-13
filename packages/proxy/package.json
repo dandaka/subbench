@@ -1,0 +1,16 @@
+{
+  "name": "@subbench/proxy",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "subbench-proxy": "./src/server.ts",
+    "subbench-proxy-verify": "./src/verify.ts",
+    "subbench-proxy-aggregate": "./src/aggregate.ts",
+    "subbench-proxy-audit": "./src/audit.ts"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}
