@@ -3,6 +3,21 @@
 This log records durable changes and decisions that affect future work. It is not a
 measurement run log and does not establish publication evidence.
 
+## 2026-07-13 — Reconciled the living plan with the merged Phase 1 build
+
+- The capture rig (Part A) had been built, tested green, and merged (`1b07269` /
+  merge `21152cf`) but `docs/plan.md` still showed all Phase 1 boxes as `[ ]`. Verified
+  the build against A5: `bun test` green (37 proxy tests), `subbench-proxy-verify`
+  asserts `gateway_envelope_tokens === 0`, audit-chain verify command present, captures
+  gitignored. Marked 1.1/1.2/1.4 done; 1.3 marked partial — the one open A5 item is the
+  **live** session reconciliation vs `/context`/ccusage, which needs a real Claude Code
+  session and is folded into the first Phase 3 burn-in.
+- Recorded the critical-path reality in the plan's "Where we are": all remaining phases
+  need **live measured runs behind operator-only gates** (isolation attestation §2, a live
+  subscription); 2.2 (pin cache-busting flags) rides on a live run; R.2 is an operator
+  decision. **No agent-only build work is unblocked** until a measurement window is
+  scheduled. Artifacts: [plan.md](plan.md).
+
 ## 2026-07-13 — Z.ai economics gap sweep (R.1): the premise was stale, gap is closeable by ingestion
 
 - Deep-research sweep (deep mode, 5 subagents) triggered by the question "does a neutral

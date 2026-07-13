@@ -14,21 +14,39 @@ verification §1, cache-busting flags §4, pause hygiene, served-model recording
 calibration task set frozen, weekly normalization decided, DeepSWE adopted as the
 economics source, HN prior-art sweep recorded in [research.md](research.md), ToS
 decision made (pass-through proxy approved, gateway rejected), and the capture-rig
-task specced ([cache-weighting-rig-task.md](cache-weighting-rig-task.md)). An
-uncommitted `packages/proxy/` skeleton exists.
+task specced ([cache-weighting-rig-task.md](cache-weighting-rig-task.md)).
 
-## Phase 1 — Build the capture rig (Part A) — WHO: agent — BLOCKED BY: nothing
+**Phase 1 (capture rig, Part A) is now built, tested green, and merged** (2026-07-13,
+`packages/proxy/`). The one open A5 item — live session reconciliation vs
+`/context`/ccusage — needs a real Claude Code session and is folded into the first
+Phase 3 burn-in.
 
-- [ ] 1.1 Reconcile the `packages/proxy/` skeleton with the spec
+**Critical-path blocker:** every remaining phase (2.1 meter verification, 2.3 isolation
+attestation, 3–4 calibration + regression, 5.1 Codex cell) requires **live measured runs
+behind operator-only gates** (isolation attestation §2, a live subscription). No further
+agent-only build work is unblocked until the operator schedules a measurement window.
+The one exception, 2.2 (pin cache-busting flags), still needs the live Claude Code env to
+read and record actual flag/TTL state, so it too rides on a run. R.2 (Z.ai re-pull) is an
+explicit operator decision.
+
+## Phase 1 — Build the capture rig (Part A) — WHO: agent — DONE (built + merged 2026-07-13, commits 1b07269 / merge 21152cf)
+
+- [x] 1.1 Reconcile the `packages/proxy/` skeleton with the spec
       (`handoff-proxy-capture.md` at repo root is the fresh-session prompt).
-- [ ] 1.2 Build: pass-through forwarder (zero envelope, lossless tee), per-request
+- [x] 1.2 Build: pass-through forwarder (zero envelope, lossless tee), per-request
       capture (usage block, served model, `anthropic-ratelimit-unified-5h/7d`
       headers), SSE reassembly, hash-chained audit log, zero-envelope verification
-      command, batch aggregation.
-- [ ] 1.3 Pass all A5 acceptance checks (envelope = 0 with persisted evidence;
-      reconcile a known session vs `/context`/ccusage; audit chain verifies;
-      captures gitignored; `bun test` green).
-- [ ] 1.4 Commit rig + root tsconfig change; operator runbook section; log entry.
+      command, batch aggregation. Built in `packages/proxy/src/`
+      (`server.ts`, `forward.ts`, `capture.ts`, `ratelimit.ts`, `sink.ts`,
+      `audit.ts`, `verify.ts`, `aggregate.ts`).
+- [~] 1.3 A5 acceptance: `bun test` green (37 proxy tests / 89 repo-wide) ✅;
+      audit chain verify command ✅; envelope verify command (`subbench-proxy-verify`,
+      asserts `gateway_envelope_tokens === 0`) ✅; captures gitignored
+      (`proxy-captures/`, `*.capture.json`) ✅. **Operator-pending:** the *live*
+      reconciliation of a real captured session against `/context`/ccusage requires an
+      actual Claude Code session — fold it into the first Phase 3 burn-in.
+- [x] 1.4 Commit rig + root tsconfig change; operator runbook
+      ([running-proxy-capture.md](running-proxy-capture.md)); log entry (log.md, 2026-07-13).
 
 ## Phase 2 — Pre-run gates — WHO: mixed — BLOCKED BY: Phase 1
 
