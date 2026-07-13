@@ -3,6 +3,31 @@
 This log records durable changes and decisions that affect future work. It is not a
 measurement run log and does not establish publication evidence.
 
+## 2026-07-13 — Z.ai economics gap sweep (R.1): the premise was stale, gap is closeable by ingestion
+
+- Deep-research sweep (deep mode, 5 subagents) triggered by the question "does a neutral
+  harness exist (pi.dev / opencode)?" **Key finding: the operative premise — "no published
+  GLM-5.2 economics record exists" — is false at the source.** DeepSWE v1.1
+  (deepswe.datacurve.ai, updated 2026-07-09), SubBench's own adopted source, now publishes
+  `glm-5.2[max]`: Pass@1 44%±2%, avg cost $3.92, out tok 78k, 129 steps, on mini-swe-agent.
+  Verified by direct fetch (×2, incl. adversarial re-fetch).
+- Root cause of the stale belief: the **local freeze**
+  `data/deepswe-v1.1-calibration-tasks.json` (2026-07-10) holds only 4 models and predates
+  the upstream GLM-5.2 addition. A re-pull closes the gap — a **data-refresh, not a
+  methodology change**; SubBench stays import-only (Path 3 not triggered).
+- pi.dev (`earendil-works/pi`, MIT) and OpenCode (`anomalyco/opencode`, MIT) confirmed as
+  real neutral, model-agnostic, GLM-5.2-capable harnesses — but **moot** for this gap.
+  OpenCode additionally disqualified: Anthropic legal action (Mar 2026, PR #18186) stripped
+  its subscription-auth plugin, and its per-turn prompt re-payment makes its costs
+  non-comparable to the mini-swe-agent board.
+- Affected artifacts: report + ranked memo in
+  [handoff-zai-economics-research.md](../handoff-zai-economics-research.md); new subsection
+  *Z.ai / GLM Economics Sources* in [research.md](research.md); R.1 ticked and R.2
+  recommendation noted in [plan.md](plan.md); auto-memory `zai-no-published-economics.md`
+  corrected (upstream now publishes; its warning against fabricating a row from the 4-model
+  aggregate still holds). **No methodology/protocol edits applied** — R.2 is an operator
+  decision.
+
 ## 2026-07-13 — Built the pass-through capture rig (Part A of the cache-weighting task)
 
 - Completed **Part A** of [cache-weighting-rig-task.md](cache-weighting-rig-task.md): the

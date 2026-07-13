@@ -530,3 +530,59 @@ tool (claude-meter) to run it, not the answer itself.
 
 Full working notes (per-tool detail, EVIDENCE/ANECDOTE tags, dead ends, and the pivot
 verification) are archived from the sweep; only distilled findings are recorded above.
+
+## Z.ai / GLM Economics Sources (2026-07-13 sweep)
+
+Deep-research sweep for a GLM-5.2 neutral-harness economics record (pass@1 + cost/task).
+Full report + ranked recommendation memo:
+[handoff-zai-economics-research.md](../handoff-zai-economics-research.md). Headline: the
+"no record exists" premise was **stale** — DeepSWE v1.1 upstream now publishes GLM-5.2.
+
+**Candidates found**
+
+- **DeepSWE v1.1 (adopted primary) — QUALIFIES.** Live leaderboard
+  (deepswe.datacurve.ai, "updated July 9 2026") lists `glm-5.2[max]`: Pass@1 44%±2%,
+  avg cost $3.92, out tok 78k, 129 steps, on mini-swe-agent like every other model.
+  Verified by direct fetch (×2). This is the exact neutral-harness economics record the
+  project believed did not exist. The local freeze
+  `data/deepswe-v1.1-calibration-tasks.json` (2026-07-10, 4 models) predates the GLM-5.2
+  addition — a re-pull closes the gap. Caveat: `[max]` is the **only** GLM-5.2 tier on the
+  board; $3.92 is an API reference price, not a Z.ai window-dollar (Harness Mismatch
+  Disclaimer applies).
+- **Artificial Analysis — QUALIFIES (broad, not coding-only).** GLM-5.2 on the Intelligence
+  Index with per-task cost + pass metrics on a uniform harness; useful for the required
+  cross-source sanity check.
+- **SWE-bench Pro (Scale public set) — near-miss.** GLM-5.2 at 62.1% Pass@1, neutral
+  scaffolding, but the board has no per-task-cost column (cost derivable from published
+  output tokens × Z.ai pricing if ever needed).
+- **Terminal-Bench 2.1 — near-miss.** GLM-5.2 covered, but "best-reported-harness" numbers
+  are not uniform and no per-task cost column.
+- **Aider polyglot / FrontierCode 1.1 / Zhipu official / Chinese boards (C-Eval, SuperCLUE)
+  — no.** GLM-5.2 not listed (Aider/FrontierCode) or vendor-self-report, not a third-party
+  neutral harness with per-task cost.
+
+**Neutral harnesses (the user's pi.dev / opencode question) — real, but moot for this gap**
+
+- **pi.dev** (`earendil-works/pi`, MIT, 70,382★) — genuine model-agnostic harness;
+  provider source registers `glm-5.2` first-class; model-neutral system prompt; ships no
+  benchmark/leaderboard. Valid neutral harness; unnecessary since the record exists.
+- **OpenCode** (`anomalyco/opencode`, MIT, 185,367★) — model-agnostic, first-class Z.AI
+  provider, headless `run --format json --auto`, native cost via `stats`/`export`; lower,
+  cache-stable prompt overhead than Claude Code (Systima). **Disqualified for SubBench**:
+  (a) Anthropic legal action (Mar 2026, PR #18186) removed its Claude Pro/Max
+  subscription-auth plugin — the exact subscription-drive capability SubBench measures;
+  (b) it re-pays its prompt baseline per turn, so its per-task cost is **not comparable** to
+  the mini-swe-agent board, defeating "neutral."
+
+**Self-generation (Path 3) — cheap but mostly moot.** Task set is open: `datacurve-ai/deep-swe`
+(Apache-2.0, 113 Harbor tasks + verifiers) run via `datacurve-ai/pier` (Apache-2.0) on
+mini-swe-agent (MIT, litellm → Z.ai OpenAI-compatible endpoint). GLM-5.2 API pricing
+$1.40/$4.40/$0.26 per M in/out/cached (Z.ai first-party, 2026-06-16). Rough cost ~$30–80,
+<1hr parallel on Modal — but **extrapolated, not measured**, and redundant now that DeepSWE
+publishes the row. Revive only for a non-`[max]` effort tier.
+
+**Recommendation (feeds plan.md R.2):** re-pull DeepSWE v1.1 and ingest the `glm-5.2[max]`
+row (`[max]`-labeled, $3.92 as API reference price); clear Z.ai `economics_gap`. No harness
+build, no self-generation. Dead ends (one line each): Aider/FrontierCode no GLM-5.2;
+OpenCode legally clouded + cost-incomparable; SWE-bench Pro / Terminal-Bench lack a per-task
+cost column; Chinese boards are vendor self-reports.
