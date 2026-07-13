@@ -135,9 +135,10 @@ are resolved.
 - Space identical tasks ≥ 1h (§4 cache hygiene) except where the fallback warm-repeat
   construction §3(2) deliberately does the opposite in a quarantined measurement.
 - Keep peak-hours and promotion flags constant across arms; never mix Z.ai 150%-promo
-  runs with baseline. Z.ai still carries `economics_gap` (no GLM-5.2 in DeepSWE v1.1), so
+  runs with baseline. Z.ai still carries `economics_gap` (local DeepSWE freeze lacks
+  GLM-5.2; upstream v1.1 now publishes `glm-5.2[max]` — closeable by a re-pull, see R.1), so
   its `api_equivalent_usd` denominator is unavailable — **the ratio cannot be computed for
-  Z.ai** until a compatible economics source exists; run the experiment on Claude and
+  Z.ai** until that re-pull lands; run the experiment on Claude and
   Codex first.
 
 ## 6. Analysis
