@@ -7,7 +7,7 @@ what's it waiting on"; the design details live in the linked docs.
 
 Legend: `[ ]` todo · `[x]` done · **WHO**: agent (any session) or operator (Vlad only).
 
-## Where we are (2026-07-14)
+## Where we are (2026-07-15)
 
 Foundations are done: methodology, protocol (incl. 2026-07-13 hardening: meter
 verification §1, cache-busting flags §4, pause hygiene, served-model recording),
@@ -21,13 +21,15 @@ task specced ([cache-weighting-rig-task.md](cache-weighting-rig-task.md)).
 `/context`/ccusage — needs a real Claude Code session and is folded into the first
 Phase 3 burn-in.
 
-**Critical-path blocker:** every remaining phase (2.1 meter verification, 2.3 isolation
-attestation, 3–4 calibration + regression, 5.1 Codex cell) requires **live measured runs
-behind operator-only gates** (isolation attestation §2, a live subscription). No further
-agent-only build work is unblocked until the operator schedules a measurement window.
-The one exception, 2.2 (pin cache-busting flags), still needs the live Claude Code env to
-read and record actual flag/TTL state, so it too rides on a run. R.2 (Z.ai re-pull) is an
-explicit operator decision.
+**Codex calibration complete** (8/8, Phase 5.1a). Z.ai calibration 3/8 — quota has
+reset, 5 tasks ready to run. **Claude Max calibration (Phase 3) is the critical-path
+blocker** — zero runs done; Phases 2–4 all depend on operator scheduling a measurement
+window with the capture proxy.
+
+**Operator action needed:**
+1. Z.ai — run remaining 5 calibration tasks (quota available now)
+2. Codex — establish weekly capacity (5.1b)
+3. Claude Max — schedule measurement window (Phase 2 gates → Phase 3 runs)
 
 ## Phase 1 — Build the capture rig (Part A) — WHO: agent — DONE (built + merged 2026-07-13, commits 1b07269 / merge 21152cf)
 
@@ -86,8 +88,8 @@ explicit operator decision.
       unit as the drain deltas; without it the cell has no SVI numerator).
 - [~] 5.2 Z.ai: `economics_gap` **closed** (R.3, 2026-07-13). GLM-5.2[max] economics
       now in the local freeze (Pass@1 44%, $3.92, 129 steps). **Calibration: 3/8 tasks
-      done** (2026-07-14); weekly quota exhausted at 100%, resets ~10:41 UTC 2026-07-14.
-      Need ≥2 more runs for minimum-5 validation; 5 tasks remain.
+      done** (2026-07-14); weekly quota reset (was exhausted 2026-07-14, resets weekly).
+      5 tasks remain — ready to run now.
 
 **Same-window constraint (goal.md).** The goal's claim is comparative — "plan A
 delivered more than plan B *during this measurement window*" — and results expire at
