@@ -3,6 +3,17 @@
 This log records durable changes and decisions that affect future work. It is not a
 measurement run log and does not establish publication evidence.
 
+## 2026-07-14 — Recorded Codex responses-api-proxy as capture prior art
+
+- Added **codex-responses-api-proxy** (OpenAI, `codex-rs/responses-api-proxy`) to the
+  API-Boundary Metering Proxies section of [research.md](research.md): confirms Codex-side
+  interposition via `~/.codex/config.toml` `model_providers` (`base_url` +
+  `wire_api='responses'`) — the analogue of our `ANTHROPIC_BASE_URL` hook — plus
+  `--dump-dir` request/response pair dumps and hardening patterns (auth-strip/inject,
+  stdin key + mlock, strict endpoint allowlist, `server-info.json`) worth reusing in
+  `packages/proxy`. Caveat recorded: the binary targets `api.openai.com` with an API key;
+  subscription-side (ChatGPT OAuth) capture reuses the mechanism, not the binary.
+
 ## 2026-07-14 — Codex calibration complete (8/8); Z.ai calibration 3/8; Codex usage API fix
 
 - **Codex (OpenAI Plus) calibration: all 8 tasks complete.** Drains: 3, 8, 5, 4, 4, 16,

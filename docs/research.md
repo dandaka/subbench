@@ -245,6 +245,20 @@ Surveyed 2026-07-13 (HN + GitHub source inspection).
   endpoint via the Claude Code SDK `query()` (not OAuth interception). ToS-gray and the
   *opposite* of clean pass-through logging — SubBench's ToS Position explicitly does not
   authorize this variant. Reference for what not to do.
+- **codex-responses-api-proxy** (github.com/openai/codex, `codex-rs/responses-api-proxy`;
+  surveyed 2026-07-14) — OpenAI's own strict pass-through proxy for Codex, and the
+  confirmed interposition mechanism for a Codex-side capture rig: Codex accepts a custom
+  `model_providers` entry in `~/.codex/config.toml` (`base_url` + `wire_api='responses'`,
+  selectable per-run via profile or `-c` flags) — the exact analogue of our
+  `ANTHROPIC_BASE_URL` hook, no TLS MITM needed. `--dump-dir` writes each request/response
+  as a pair of JSON files; design details worth stealing for `packages/proxy`: strips any
+  incoming `Authorization` and injects its own (key read from stdin, `mlock`'d), overrides
+  `Host`, 403s everything except the one expected endpoint, writes a `server-info.json`
+  (port/pid) for scripted startup. **Caveat:** as shipped it forwards only to
+  `api.openai.com/v1/responses` with an API key — Codex on a ChatGPT subscription uses
+  ChatGPT OAuth against the ChatGPT backend, so subscription-side capture (SubBench's
+  target) reuses the mechanism, not the binary: retarget the forward URL and pass the OAuth
+  auth through instead of injecting a key.
 - Heavier observability gateways that also capture at the boundary — **LiteLLM**,
   **Bifrost** (maximhq/bifrost), **Braintrust proxy**, **Helicone**, **TensorZero**,
   **Dev Proxy v0.28** (Microsoft; OpenAI-only, no Anthropic cache split) — all viable
@@ -257,6 +271,7 @@ Sources:
 - https://github.com/ongoingai/gateway
 - https://github.com/jmuncor/tokentap (HN https://news.ycombinator.com/item?id=46799898)
 - https://github.com/paopaoandlingyia/PrismCat
+- https://github.com/openai/codex/blob/main/codex-rs/responses-api-proxy/README.md
 - https://github.com/rynfar/meridian
 
 Dead ends (recorded so future sweeps don't re-chase): cost-reduction/compression proxies
