@@ -7,7 +7,7 @@
 import { resolve } from "node:path";
 import { readClaudeUsageSnapshot } from "../packages/cli/src/claude-usage.ts";
 import { readCodexUsageSnapshot } from "../packages/cli/src/codex-usage.ts";
-import { selectWindow } from "../packages/cli/src/usage.ts";
+import { selectWindow, trySelectWindow } from "../packages/cli/src/usage.ts";
 import { readZaiUsageSnapshot } from "../packages/cli/src/zai-usage.ts";
 import { readAndVerifyLock, readLockedSelection } from "./deepswe-lock.ts";
 import { prepareDeepSwe } from "./prepare-deepswe.ts";
@@ -46,10 +46,12 @@ async function probe(provider: Provider): Promise<void> {
         ? await readCodexUsageSnapshot()
         : await readZaiUsageSnapshot();
   const weekly = selectWindow(snapshot, "weekly");
-  const session = selectWindow(snapshot, "session");
+  const session = trySelectWindow(snapshot, "session");
+  const sessionStr = session
+    ? `session ${session.usedPercent}%, `
+    : "";
   console.log(
-    `Read-only ${provider} usage probe: session ${session.usedPercent}%, ` +
-      `weekly ${weekly.usedPercent}%.`,
+    `Read-only ${provider} usage probe: ${sessionStr}weekly ${weekly.usedPercent}%.`,
   );
 }
 

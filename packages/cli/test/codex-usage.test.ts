@@ -28,6 +28,33 @@ describe("Codex usage", () => {
     });
   });
 
+  test("classifies single primary window as weekly when duration is 10080 min", () => {
+    expect(
+      usageFromResponse({
+        id: 2,
+        result: {
+          rateLimits: {
+            planType: "plus",
+            primary: {
+              usedPercent: 0,
+              windowDurationMins: 10080,
+              resetsAt: 1784590263,
+            },
+            secondary: null,
+          },
+        },
+      }),
+    ).toEqual({
+      plan: "plus",
+      session: null,
+      weekly: {
+        usedPercent: 0,
+        windowDurationMins: 10080,
+        resetsAt: 1784590263,
+      },
+    });
+  });
+
   test("normalizes an auditable provider-neutral snapshot", () => {
     const snapshot = codexSnapshotFromResponse(
       {

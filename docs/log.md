@@ -3,6 +3,29 @@
 This log records durable changes and decisions that affect future work. It is not a
 measurement run log and does not establish publication evidence.
 
+## 2026-07-14 — Codex calibration complete (8/8); Z.ai calibration 3/8; Codex usage API fix
+
+- **Codex (OpenAI Plus) calibration: all 8 tasks complete.** Drains: 3, 8, 5, 4, 4, 16,
+  5, 5% (median 5%, mean 6.25%). Pass rate: 3/8 (37.5%). Total weekly drain: 50%
+  (44% in this window). Batch is contiguous (no tokenizer-generation break, no pauses
+  > TTL). One discarded run: `sqlite-utils-safe-import-checkpoints` straddled a weekly
+  window reset (pre/post `resetsAt` mismatch); retried cleanly in the new window.
+  Database: `data/frozen-studies/deepswe-v1.1-2026-07-10/openai-plus.db`.
+- **Z.ai calibration: 3/8 tasks complete.** Drains: 6, 14, 14% (runs 1–2 prior session,
+  run 3 this session). Weekly quota exhausted at 100%; resets ~10:41 UTC 2026-07-14.
+  5 more tasks remain; need ≥2 more for the minimum-5 validation threshold (protocol §6).
+  Database: `data/frozen-studies/deepswe-v1.1-2026-07-10/zai-coding-lite.db`.
+- **Fix: Codex usage window classification by duration.** OpenAI consolidated their
+  rate-limit API to a single `primary` window (10080 min = 7 days) with `secondary: null`.
+  Our mapper classified by position (`primary` → session, `secondary` → weekly), which
+  broke when the weekly window moved to `primary`. Fixed to classify by
+  `windowDurationMins` (≥10080 → weekly, else session). Added `trySelectWindow()` for
+  optional window lookups; updated `preflight-deepswe-calibration.ts` and
+  `run-deepswe-calibration.ts` to handle missing session window gracefully. Test added
+  for the single-window case. Affected files: `packages/cli/src/codex-usage.ts`,
+  `packages/cli/src/usage.ts`, `scripts/run-deepswe-calibration.ts`,
+  `scripts/preflight-deepswe-calibration.ts`, `packages/cli/test/codex-usage.test.ts`.
+
 ## 2026-07-13 — Re-pulled DeepSWE v1.1 with GLM-5.2; Z.ai economics gap closed (R.2/R.3)
 
 - Regenerated `data/deepswe-v1.1-calibration-tasks.json` by re-running

@@ -30,10 +30,32 @@ export function usageFromResponse(message: RpcMessage): CodexUsage {
     throw new Error(message.error.message ?? "Codex app-server request failed");
   const limits = message.result?.rateLimits;
   if (!limits) throw new Error("Codex app-server returned no rate limits");
+  // Classify windows by duration, not position: OpenAI consolidated to a
+  // single primary window (10080 min = 7 days) with secondary null.
+  const classify = (
+    w: RateLimitWindow | null,
+  ): "session" | "weekly" | null => {
+    if (!w) return null;
+    if (w.windowDurationMins != null && w.windowDurationMins >= 10080)
+      return "weekly";
+    return "session";
+  };
+  const primaryKind = classify(limits.primary);
+  const secondaryKind = classify(limits.secondary);
   return {
     plan: limits.planType,
-    session: limits.primary,
-    weekly: limits.secondary,
+    session:
+      primaryKind === "session"
+        ? limits.primary
+        : secondaryKind === "session"
+          ? limits.secondary
+          : null,
+    weekly:
+      primaryKind === "weekly"
+        ? limits.primary
+        : secondaryKind === "weekly"
+          ? limits.secondary
+          : null,
   };
 }
 

@@ -3,7 +3,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { readCodexUsageSnapshot } from "../packages/cli/src/codex-usage.ts";
-import { selectWindow } from "../packages/cli/src/usage.ts";
+import { selectWindow, trySelectWindow } from "../packages/cli/src/usage.ts";
 import {
   insertRun,
   insertUsageSnapshots,
@@ -141,11 +141,11 @@ stampIsolation(database, isolationOperator, environmentId);
 const task = nextTask();
 const pre = await readCodexUsageSnapshot();
 const preWeekly = selectWindow(pre, "weekly");
-const preSession = selectWindow(pre, "session");
+const preSession = trySelectWindow(pre, "session");
 if ((pre.account.plan ?? "") !== "plus") {
   throw new Error(`expected Plus plan, got ${pre.account.plan ?? "unknown"}`);
 }
-if (preSession.usedPercent >= 70) {
+if (preSession && preSession.usedPercent >= 70) {
   throw new Error(
     `five-hour usage is ${preSession.usedPercent}%; wait before the next task`,
   );

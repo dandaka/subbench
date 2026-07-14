@@ -7,7 +7,7 @@ what's it waiting on"; the design details live in the linked docs.
 
 Legend: `[ ]` todo · `[x]` done · **WHO**: agent (any session) or operator (Vlad only).
 
-## Where we are (2026-07-13)
+## Where we are (2026-07-14)
 
 Foundations are done: methodology, protocol (incl. 2026-07-13 hardening: meter
 verification §1, cache-busting flags §4, pause hygiene, served-model recording),
@@ -79,12 +79,15 @@ explicit operator decision.
 
 ## Phase 5 — Second provider cell — BLOCKED BY: nothing hard (parallel to 3–4)
 
-- [ ] 5.1 Codex (OpenAI) cell: meter verification, isolation, calibration batches,
-      **and capacity establishment** (§5 — total weekly capacity in the same quota
+- [x] 5.1a Codex (OpenAI) calibration batches: **all 8/8 tasks complete** (2026-07-14).
+      Drains: 3, 8, 5, 4, 4, 16, 5, 5% (median 5%, mean 6.25%). Pass: 3/8 (37.5%).
+      Meter verified (subscription drain confirmed across runs). Isolation attested.
+- [ ] 5.1b Codex capacity establishment (§5 — total weekly capacity in the same quota
       unit as the drain deltas; without it the cell has no SVI numerator).
-- [ ] 5.2 Z.ai: `economics_gap` **closed** (R.3, 2026-07-13). GLM-5.2[max] economics
-      now in the local freeze (Pass@1 44%, $3.92, 129 steps). Capacity measurement and
-      SVI/API comparison are unblocked; fold into a coordinated measurement week.
+- [~] 5.2 Z.ai: `economics_gap` **closed** (R.3, 2026-07-13). GLM-5.2[max] economics
+      now in the local freeze (Pass@1 44%, $3.92, 129 steps). **Calibration: 3/8 tasks
+      done** (2026-07-14); weekly quota exhausted at 100%, resets ~10:41 UTC 2026-07-14.
+      Need ≥2 more runs for minimum-5 validation; 5 tasks remain.
 
 **Same-window constraint (goal.md).** The goal's claim is comparative — "plan A
 delivered more than plan B *during this measurement window*" — and results expire at

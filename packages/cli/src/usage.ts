@@ -117,6 +117,13 @@ export function selectWindow(
   return window;
 }
 
+export function trySelectWindow(
+  snapshot: UsageSnapshot,
+  kind: UsageWindowKind,
+): UsageWindow | null {
+  return snapshot.windows.find((candidate) => candidate.kind === kind) ?? null;
+}
+
 export function renderUsage(
   snapshot: UsageSnapshot,
   kind: UsageWindowKind,
