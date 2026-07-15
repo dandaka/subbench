@@ -92,10 +92,16 @@ export async function runEnvelopeCheck(
 ): Promise<EnvelopeEvidence> {
   const fetchImpl = options.fetch ?? fetch;
   const sent = bareRequestBody();
+  const authorization = process.env.PROXY_AUTHORIZATION;
 
   const response = await fetchImpl(new URL("/v1/messages", options.proxyUrl), {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: {
+      "content-type": "application/json",
+      "anthropic-version": "2023-06-01",
+      "anthropic-beta": "oauth-2025-04-20",
+      ...(authorization ? { authorization } : {}),
+    },
     body: sent,
   });
   const raw = await response.text();
@@ -145,7 +151,11 @@ if (import.meta.main) {
     process.env.PROXY_CAPTURES_DIR ?? "./.subbench/proxy-captures";
   const evidence = await runEnvelopeCheck({ proxyUrl, capturesDir });
   await Bun.write(outPath, `${JSON.stringify(evidence, null, 2)}\n`);
-  const ok = evidence.byte_identical && evidence.gateway_envelope_tokens === 0;
+  const ok =
+    evidence.response_status >= 200 &&
+    evidence.response_status < 300 &&
+    evidence.byte_identical &&
+    evidence.gateway_envelope_tokens === 0;
   console.error(
     `[${PROXY_VERSION}] envelope check ${ok ? "PASS" : "FAIL"}: ` +
       `byte_identical=${evidence.byte_identical} ` +

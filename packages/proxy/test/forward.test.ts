@@ -129,13 +129,14 @@ describe("forward — pass-through invariants", () => {
     });
   });
 
-  test("does not add or drop response headers other than hop-by-hop", async () => {
+  test("does not add or drop response headers other than transport encoding", async () => {
     const upstreamResponse = new Response("{}", {
       status: 200,
       headers: {
         "content-type": "application/json",
         "anthropic-organization-id": "org-xyz",
         "transfer-encoding": "chunked",
+        "content-encoding": "gzip",
       },
     });
     const { response } = await forward(
@@ -151,5 +152,6 @@ describe("forward — pass-through invariants", () => {
     );
     expect(response.headers.get("anthropic-organization-id")).toBe("org-xyz");
     expect(response.headers.get("transfer-encoding")).toBeNull();
+    expect(response.headers.get("content-encoding")).toBeNull();
   });
 });

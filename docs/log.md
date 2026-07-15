@@ -3,6 +3,35 @@
 This log records durable changes and decisions that affect future work. It is not a
 measurement run log and does not establish publication evidence.
 
+## 2026-07-15 — Z.ai calibration advanced to 5/8
+
+- Ran two isolated Z.ai calibration tasks with the required operator isolation
+  attestation recorded by the runner. `mashumaro-flattened-dataclass-fields` drained
+  17% and did not pass. `koota-deferred-mutation-buffer` drained 0%, did not pass, and
+  Pier reported `NonZeroAgentExitCodeError`. Z.ai calibration is now 5/8 complete,
+  1/5 pass rate so far. Database:
+  `data/frozen-studies/deepswe-v1.1-2026-07-10/zai-coding-lite.db`.
+
+## 2026-07-15 — Claude calibration runner supports the approved capture proxy
+
+- The Claude Max runner no longer removes an explicitly supplied `ANTHROPIC_BASE_URL`.
+  This restores compatibility with the approved local, zero-envelope pass-through proxy
+  required for Phase 3 capture batches; unset still uses Anthropic's normal endpoint.
+  The runner continues to remove API-key/token credentials and uses Claude Max OAuth.
+  A proxy must still pass the documented envelope verification before a measurement run.
+- Hardened that verification: it accepts an optional `PROXY_AUTHORIZATION` header and now
+  requires the probe's upstream response to be 2xx, preventing an unauthenticated 401
+  pass-through from being treated as usable capture evidence. Affected artifacts:
+  `scripts/run-claude-deepswe-calibration.ts`, `packages/proxy/src/verify.ts`, and
+  `docs/running-proxy-capture.md`.
+- Fixed live Anthropic response forwarding: Bun transparently decompresses response bodies,
+  so the proxy now strips the stale `content-encoding` transport header before returning
+  that decoded body. This prevents a downstream client from attempting a second
+  decompression. Added proxy header coverage in `packages/proxy/test/forward.test.ts`.
+- The envelope probe now supplies Anthropic's required version and OAuth beta headers so
+  its authenticated one-token request verifies a usable upstream path rather than a
+  syntactically invalid request.
+
 ## 2026-07-14 — Recorded Codex responses-api-proxy as capture prior art
 
 - Added **codex-responses-api-proxy** (OpenAI, `codex-rs/responses-api-proxy`) to the

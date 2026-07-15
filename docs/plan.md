@@ -21,13 +21,14 @@ task specced ([cache-weighting-rig-task.md](cache-weighting-rig-task.md)).
 `/context`/ccusage — needs a real Claude Code session and is folded into the first
 Phase 3 burn-in.
 
-**Codex calibration complete** (8/8, Phase 5.1a). Z.ai calibration 3/8 — quota has
-reset, 5 tasks ready to run. **Claude Max calibration (Phase 3) is the critical-path
-blocker** — zero runs done; Phases 2–4 all depend on operator scheduling a measurement
-window with the capture proxy.
+**Codex calibration complete** (8/8, Phase 5.1a). Z.ai calibration 5/8 — quota has
+reset, 3 tasks remain. **Claude Max calibration (Phase 3) is the critical-path
+blocker** — the frozen DB has 2 historical rows, but new proxy-captured runs are paused
+until the authenticated proxy envelope verification succeeds; Phases 2–4 all depend on
+operator scheduling a measurement window with the capture proxy.
 
 **Operator action needed:**
-1. Z.ai — run remaining 5 calibration tasks (quota available now)
+1. Z.ai — run remaining 3 calibration tasks (quota available now)
 2. Codex — establish weekly capacity (5.1b)
 3. Claude Max — schedule measurement window (Phase 2 gates → Phase 3 runs)
 
@@ -87,9 +88,11 @@ window with the capture proxy.
 - [ ] 5.1b Codex capacity establishment (§5 — total weekly capacity in the same quota
       unit as the drain deltas; without it the cell has no SVI numerator).
 - [~] 5.2 Z.ai: `economics_gap` **closed** (R.3, 2026-07-13). GLM-5.2[max] economics
-      now in the local freeze (Pass@1 44%, $3.92, 129 steps). **Calibration: 3/8 tasks
-      done** (2026-07-14); weekly quota reset (was exhausted 2026-07-14, resets weekly).
-      5 tasks remain — ready to run now.
+      now in the local freeze (Pass@1 44%, $3.92, 129 steps). **Calibration: 5/8 tasks
+      done** (2026-07-15); pass rate 1/5 so far. The latest completed tasks were
+      `mashumaro-flattened-dataclass-fields` (drained 17%, did not pass) and
+      `koota-deferred-mutation-buffer` (drained 0%, did not pass; Pier reported
+      `NonZeroAgentExitCodeError`). 3 tasks remain — ready to run now.
 
 **Same-window constraint (goal.md).** The goal's claim is comparative — "plan A
 delivered more than plan B *during this measurement window*" — and results expire at

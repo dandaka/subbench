@@ -109,6 +109,10 @@ export async function forward(
   });
 
   const responseHeaders = forwardableHeaders(upstreamResponse.headers);
+  // Bun's fetch transparently decompresses upstream bodies. Forwarding the original
+  // content-encoding after that transform makes downstream clients attempt a second
+  // decompression and reject an otherwise untouched response.
+  responseHeaders.delete("content-encoding");
   const status = upstreamResponse.status;
   // The unified quota reading is read off the response headers before we hand the body
   // back; it is independent of body streaming.

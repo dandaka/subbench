@@ -47,10 +47,12 @@ evidence. This costs one trivial one-line request (negligible quota):
 PROXY_URL=http://127.0.0.1:8788 \
 PROXY_CAPTURES_DIR=./.subbench/proxy-captures \
 ENVELOPE_EVIDENCE_PATH=./.subbench/proxy-captures/envelope-verification.json \
+PROXY_AUTHORIZATION="Bearer $CLAUDE_CODE_OAUTH_TOKEN" \\
 bun packages/proxy/src/verify.ts
 ```
 
-A PASS requires `byte_identical=true` **and** `GATEWAY_ENVELOPE_TOKENS=0` (exit 0). Record
+A PASS requires an authenticated 2xx response, `byte_identical=true`, **and**
+`GATEWAY_ENVELOPE_TOKENS=0` (exit 0). Record
 the evidence file's `proxy_version` + result in the run's `logging proxy present
 (version; pass-through verified)` field (methodology → Data Schema). A FAIL (exit 1)
 invalidates any run made through this proxy — do not proceed.

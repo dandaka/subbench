@@ -193,7 +193,9 @@ function pierEnvironment(token: string): Record<string, string> {
   // Use the subscription OAuth login, not a pay-per-token API key.
   delete env.ANTHROPIC_API_KEY;
   delete env.ANTHROPIC_AUTH_TOKEN;
-  delete env.ANTHROPIC_BASE_URL;
+  // Preserve an explicitly supplied local pass-through proxy.  The default remains
+  // Anthropic's endpoint when this variable is unset; proxy use is required for the
+  // Phase 3 capture batch and is verified separately before a measurement counts.
   env.CLAUDE_CODE_OAUTH_TOKEN = token;
   env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = "1";
   return env;
