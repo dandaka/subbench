@@ -3,6 +3,16 @@
 This log records durable changes and decisions that affect future work. It is not a
 measurement run log and does not establish publication evidence.
 
+## 2026-07-15 — Renamed brand SubBench → Subbench
+
+- Replaced `SubBench` → `Subbench` across LICENSE, README, 7 docs, and
+  `packages/core/src/report.ts` (report title generator). Package names were already
+  lowercase (`subbench`, `@subbench/core`) and unchanged.
+- Left the frozen study report
+  `data/frozen-studies/deepswe-v1.1-2026-07-10/openai-plus-precollection-report.md`
+  untouched: it is an immutable snapshot, so its `# SubBench calibration report` title
+  records the name in use when captured. Future reports emit `# Subbench …`.
+
 ## 2026-07-15 — Renamed Z.ai research report, moved into docs/
 
 - Renamed `handoff-zai-economics-research.md` (repo root) → `docs/research-zai-economics.md`:
@@ -188,13 +198,13 @@ measurement run log and does not establish publication evidence.
 - Deep-research sweep (deep mode, 5 subagents) triggered by the question "does a neutral
   harness exist (pi.dev / opencode)?" **Key finding: the operative premise — "no published
   GLM-5.2 economics record exists" — is false at the source.** DeepSWE v1.1
-  (deepswe.datacurve.ai, updated 2026-07-09), SubBench's own adopted source, now publishes
+  (deepswe.datacurve.ai, updated 2026-07-09), Subbench's own adopted source, now publishes
   `glm-5.2[max]`: Pass@1 44%±2%, avg cost $3.92, out tok 78k, 129 steps, on mini-swe-agent.
   Verified by direct fetch (×2, incl. adversarial re-fetch).
 - Root cause of the stale belief: the **local freeze**
   `data/deepswe-v1.1-calibration-tasks.json` (2026-07-10) holds only 4 models and predates
   the upstream GLM-5.2 addition. A re-pull closes the gap — a **data-refresh, not a
-  methodology change**; SubBench stays import-only (Path 3 not triggered).
+  methodology change**; Subbench stays import-only (Path 3 not triggered).
 - pi.dev (`earendil-works/pi`, MIT) and OpenCode (`anomalyco/opencode`, MIT) confirmed as
   real neutral, model-agnostic, GLM-5.2-capable harnesses — but **moot** for this gap.
   OpenCode additionally disqualified: Anthropic legal action (Mar 2026, PR #18186) stripped
@@ -315,7 +325,7 @@ measurement run log and does not establish publication evidence.
   JSON and SSE, plus per-window `anthropic-ratelimit-unified-*` utilization floats + reset
   timestamps, and a Python `usage_value(cache_read_weight=...)` knob that already prototypes
   the §4 regression. It **confirms** cache-weighting-experiment.md §4's "coarse/rounded
-  meter" caveat (its own estimates span ~10× bands) rather than refuting it. SubBench must
+  meter" caveat (its own estimates span ~10× bands) rather than refuting it. Subbench must
   add: a permissively-licensed reimplementation, hash-chained audit log, lossless (non-
   dropping) capture, Codex/Z.ai normalizers, the constrained drain-regression solver, and
   the §2 isolation gate. Recorded in research.md; no §4 design change required.
@@ -331,7 +341,7 @@ measurement run log and does not establish publication evidence.
   Proxies**, **Harness Token-Overhead — Independent Corroboration**, **Meter-Recovery
   Tooling and Endpoints** + **The Cache-Weighting Pivot**, **Prompt-Cache Economics in
   Practice**, and **Subscription-vs-API Value Comparisons**; plus a **Synthesis for
-  SubBench** section.
+  Subbench** section.
 - Top find: **claude-meter** (abhishekray07) — a local pass-through research proxy that
   captures the response usage block AND the `anthropic-ratelimit-unified-5h/7d` utilization
   headers AND reassembles SSE usage, with a cache-read-weight knob. Captures *more* than
@@ -367,7 +377,7 @@ measurement run log and does not establish publication evidence.
 
 ## 2026-07-13 — ToS decision: boundary-level proxy capture approved, proxy-only
 
-- Operator decision: SubBench may capture its own traffic at the API boundary with a
+- Operator decision: Subbench may capture its own traffic at the API boundary with a
   **pass-through logging proxy** (option B of the C-level review). The gateway variant
   (Meridian-style bridging of subscription auth into non-native clients) is **not**
   approved.

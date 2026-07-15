@@ -1,6 +1,6 @@
 # Methodology
 
-SubBench combines two measurements:
+Subbench combines two measurements:
 
 1. Task economics: how much capacity a successful benchmark task consumes.
 2. Subscription capacity: how much usable capacity a subscription provides.
@@ -47,7 +47,7 @@ produced.
 ## V1 Strategy
 
 V1 does not re-run task evaluations. Task economics (pass rate, cost per task) come from
-a published benchmark source; SubBench's original measurement is subscription capacity
+a published benchmark source; Subbench's original measurement is subscription capacity
 plus a small calibration layer that converts published API cost into subscription-quota
 units.
 
@@ -112,7 +112,7 @@ The full model matrix is deferred to V2.
 
 ## Limit Scope
 
-SubBench tracks weekly and monthly limits only. Short-window limits (e.g. 5-hour session
+Subbench tracks weekly and monthly limits only. Short-window limits (e.g. 5-hour session
 windows) are out of scope: they shape burst ergonomics, not billing-period yield. Runs
 should be paced so session limits never bind; if a session limit interrupts a run anyway,
 record it as a limit event and note it in caveats.
@@ -184,7 +184,7 @@ Environment isolation is not enough: providers share quota across product surfac
 across surfaces). Any usage on another surface during a measurement window silently
 inflates observed drain.
 
-The measurement account must be dedicated to SubBench, or verified idle on all other
+The measurement account must be dedicated to Subbench, or verified idle on all other
 surfaces for the entire measurement window. Any concurrent non-measurement usage on
 the account invalidates the window.
 
@@ -348,7 +348,7 @@ than treated as permanent.
 
 Provider quota windows are per-account and anchored differently (e.g. one account's
 Claude window resets Tuesday afternoon while its Codex window resets on another day), so
-literally aligned cross-provider windows do not exist. SubBench accepts this rather than
+literally aligned cross-provider windows do not exist. Subbench accepts this rather than
 pretending otherwise:
 
 - Each cell is measured inside **one of its own provider's quota windows** (a batch never
@@ -371,11 +371,11 @@ above until refreshed.
 ## ToS Position
 
 Depletion experiments and scripted product usage may conflict with provider terms of
-service. SubBench accepts this risk: measurements are ordinary product usage at realistic
+service. Subbench accepts this risk: measurements are ordinary product usage at realistic
 volumes, performed on paid accounts, published in aggregate. No internal APIs are reverse
 engineered beyond reading usage indicators the product already displays.
 
-Extension (operator-approved 2026-07-13): SubBench may additionally capture its **own**
+Extension (operator-approved 2026-07-13): Subbench may additionally capture its **own**
 traffic at the API boundary with a local **pass-through logging proxy** (e.g. pointing
 `ANTHROPIC_BASE_URL` at a forwarder that records each request's payload and returned
 usage block). Scope limits: measurement accounts only; the proxy is a pure pass-through
@@ -383,11 +383,11 @@ that modifies nothing and adds no envelope; raw captures are never published (th
 provider system prompts) — only aggregates are; the technique is disclosed in the
 published methodology. **Not** approved: driving a subscription through a third-party
 gateway/bridge that repurposes subscription auth for non-native clients (the
-Meridian-style setup) — that remains outside SubBench's ToS Position.
+Meridian-style setup) — that remains outside Subbench's ToS Position.
 
 ## Task Cost Sources
 
-SubBench does not invent or re-run tasks. Task economics come from a published benchmark
+Subbench does not invent or re-run tasks. Task economics come from a published benchmark
 that reports per-model cost data.
 
 Primary candidate — DeepSWE (deepswe.datacurve.ai):
@@ -517,7 +517,7 @@ Each result should include:
 
 ## Claims Policy
 
-SubBench should make scoped claims only.
+Subbench should make scoped claims only.
 
 Good:
 

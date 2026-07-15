@@ -1,6 +1,6 @@
 # Relevant Research
 
-SubBench builds on existing work in coding-agent benchmarking, model cost analysis, and subscription-limit reverse engineering.
+Subbench builds on existing work in coding-agent benchmarking, model cost analysis, and subscription-limit reverse engineering.
 
 ## Coding-Agent Benchmarks
 
@@ -15,7 +15,7 @@ Artificial Analysis measures coding-agent performance across benchmark suites an
 - wall-clock time
 - harness comparisons
 
-This is the closest existing source to the denominator SubBench needs: cost per successful coding task.
+This is the closest existing source to the denominator Subbench needs: cost per successful coding task.
 
 Source: https://artificialanalysis.ai/agents/coding-agents
 
@@ -100,7 +100,7 @@ count endpoints — then verified the headline claim against real paid invoices.
   Anthropic's tokenizer is undocumented and changes between model generations. (HN
   48896800 discussion adds: OpenAI's last tokenizer update made it *more* efficient.)
 
-Implications for SubBench:
+Implications for Subbench:
 
 - External validation of the core thesis: compare in dollars per task, never $/Mtok
   ([why-calibration.md](why-calibration.md)); the article's own recommendation is
@@ -136,7 +136,7 @@ Source: https://digitaleconomy.stanford.edu/publication/how-do-ai-agents-spend-y
 Systima spliced a logging proxy between each harness and the model endpoint
 (`ANTHROPIC_BASE_URL`), capturing exact request payloads and API usage blocks
 (input, cache write, cache read, output tokens). Findings directly relevant to
-SubBench:
+Subbench:
 
 - Harness baseline is large and model-conditional: Claude Code's fixed overhead was
   ~33k tokens on Sonnet 4.5 but materially smaller on Fable 5 (system prompt 27,787
@@ -169,13 +169,13 @@ The rig itself (MIT-relevant details from the repo, examined 2026-07-13):
 - Captures carry a `servedModel` field — how they caught silent model substitution.
 - `rig/ingest-audit.mjs` replays captures into a SHA-256 hash-chained, verifiable audit
   log (their 273-record July 2026 chain verifies end to end) — a pattern worth copying
-  for SubBench measurement evidence.
+  for Subbench measurement evidence.
 - `qbench/` seeds a per-lane nonce-instantiated ten-assert test suite, hashed before and
   after each lane to prove the harness didn't modify its own exam; `results/results.json`
   publishes all 58 lanes / 273 requests. Raw captures stay private (they embed full
   system prompts); the rig regenerates equivalent captures for any setup.
 
-Relevance to SubBench: a candidate route to the cache-weighting pivot question
+Relevance to Subbench: a candidate route to the cache-weighting pivot question
 (regressing rounded batch drain deltas on exact proxy-captured token mixes) — see
 cache-weighting-experiment.md §4 for the design sketch and its isolation/ToS caveats.
 
@@ -198,7 +198,7 @@ agent harness and the model endpoint. Only a few actually read the provider **us
 Surveyed 2026-07-13 (HN + GitHub source inspection).
 
 - **claude-meter** (github.com/abhishekray07/claude-meter; HN item 47536655) — the closest
-  and arguably strongest prior art to SubBench's whole thesis, and a **more complete
+  and arguably strongest prior art to Subbench's whole thesis, and a **more complete
   capture than Systima's rig**. A local pass-through Go proxy + Python analysis layer,
   self-described as a "local research proxy for understanding how Claude Code usage maps to
   Anthropic's hidden quota system." Source-verified: `normalize_sniffer_log.py` reads the
@@ -207,9 +207,9 @@ Surveyed 2026-07-13 (HN + GitHub source inspection).
   (0..1) — i.e. it captures the hidden quota signal *and* the token mix together.
   `internal/normalize/sse.go` reassembles streaming usage across `message_start` /
   `message_delta`; `analyze_normalized_log.py` already has a `usage_value(...,
-  cache_read_weight=...)` knob tested at 0.10/0.30/0.50 — a direct prototype of SubBench's
+  cache_read_weight=...)` knob tested at 0.10/0.30/0.50 — a direct prototype of Subbench's
   cache-weighting question. Pure local pass-through (uses the user's own Claude Code auth,
-  no subscription bridging), so it fits SubBench's approved instrumentation posture.
+  no subscription bridging), so it fits Subbench's approved instrumentation posture.
   Relevance: read in full before building further; its unified-ratelimit-header capture is
   the piece Systima's rig lacks and is exactly what pairs a token mix to a quota-window
   drain. **This is the single most important find of the sweep.**
@@ -221,7 +221,7 @@ Surveyed 2026-07-13 (HN + GitHub source inspection).
   reassembly), per-window utilization floats + reset timestamps, and a Python
   `usage_value(cache_read_weight=...)` knob that already prototypes §4's regression. It
   **confirms** the cache-weighting-experiment.md §4 caveat that a rounded meter is coarse
-  (its own estimates span ~10× bands) rather than refuting it. To build on it SubBench must
+  (its own estimates span ~10× bands) rather than refuting it. To build on it Subbench must
   add: a permissively-licensed reimplementation, hash-chained audit log (Systima-style),
   lossless non-dropping capture, Codex/Z.ai normalizers (it is Anthropic-only), the
   constrained drain-regression solver, and the protocol §2 isolation gate.
@@ -243,7 +243,7 @@ Surveyed 2026-07-13 (HN + GitHub source inspection).
 - **Meridian** (github.com/rynfar/meridian) — the tool Systima used. Confirmed a
   subscription **bridge**: it exposes a Claude Max sub as a standard Anthropic/OpenAI HTTP
   endpoint via the Claude Code SDK `query()` (not OAuth interception). ToS-gray and the
-  *opposite* of clean pass-through logging — SubBench's ToS Position explicitly does not
+  *opposite* of clean pass-through logging — Subbench's ToS Position explicitly does not
   authorize this variant. Reference for what not to do.
 - **codex-responses-api-proxy** (github.com/openai/codex, `codex-rs/responses-api-proxy`;
   surveyed 2026-07-14) — OpenAI's own strict pass-through proxy for Codex, and the
@@ -256,7 +256,7 @@ Surveyed 2026-07-13 (HN + GitHub source inspection).
   `Host`, 403s everything except the one expected endpoint, writes a `server-info.json`
   (port/pid) for scripted startup. **Caveat:** as shipped it forwards only to
   `api.openai.com/v1/responses` with an API key — Codex on a ChatGPT subscription uses
-  ChatGPT OAuth against the ChatGPT backend, so subscription-side capture (SubBench's
+  ChatGPT OAuth against the ChatGPT backend, so subscription-side capture (Subbench's
   target) reuses the mechanism, not the binary: retarget the forward URL and pass the OAuth
   auth through instead of injecting a key.
 - Heavier observability gateways that also capture at the boundary — **LiteLLM**,
@@ -306,7 +306,7 @@ measured token counts from complaint-level anecdote.
   of spend, cache writes 18%, output only 16% ("whole context re-sent every turn").
   `CodeBurn` (github.com/AgentSeal/codeburn) on an aggregate: cache-read 3.38B vs raw input
   23.9M tokens (141x), 99.3% cache-hit. Both confirm re-sent context — not output — is the
-  dominant cost, validating SubBench's focus on metered input and the cache re-write
+  dominant cost, validating Subbench's focus on metered input and the cache re-write
   mechanism Systima described.
 - **Pi minimal-overhead confirmed** (github.com/earendil-works/pi): its
   `harness/system-prompt.ts` is ~1.2k chars (a skills formatter, not a preamble) — a useful
@@ -338,7 +338,7 @@ Sources:
 
 The Claude limits article demonstrates a method for inferring hidden subscription capacity from precise usage floats. It reconstructs internal plan credit limits and maps usage to token-equivalent/API-equivalent value.
 
-This is the closest existing work to the numerator SubBench needs: observed subscription capacity.
+This is the closest existing work to the numerator Subbench needs: observed subscription capacity.
 
 Source: https://she-llac.com/claude-limits
 
@@ -351,7 +351,7 @@ Codex, Z.ai, OpenCode Go, Cursor, Copilot, Gemini, and other coding tools. Its p
 layer demonstrates several practical quota interfaces, including Codex app-server RPC,
 Claude's OAuth usage endpoint, and Z.ai's quota endpoint.
 
-SubBench distinguishes server-reported quota data from CLI display parsing and local
+Subbench distinguishes server-reported quota data from CLI display parsing and local
 reconstruction, then retains snapshots as measurement evidence under the protocol.
 
 Sources:
@@ -362,7 +362,7 @@ Sources:
 
 A crowd of independent tools converges on the same fact: the subscription utilization %
 is **served verbatim by the provider's usage endpoint**, and cannot be reliably
-reconstructed from local token logs. This is load-bearing for SubBench — it means drain
+reconstructed from local token logs. This is load-bearing for Subbench — it means drain
 must be *measured from the meter*, not derived from token accounting.
 
 - **The canonical Claude source is the OAuth `/usage` endpoint**
@@ -469,7 +469,7 @@ the API side of the subscription-vs-API comparison.
   (claude-code#45381, fixed in 2.1.108); (b) the prompt's middle cache block includes
   git-status, so **every commit busts it** and re-pays a ~6k cache-write on the next query
   (workaround `CLAUDE_CODE_DISABLE_GIT_INSTRUCTIONS=1`). Both change drain independently of
-  the task — instrumentation SubBench runs should pin these flags.
+  the task — instrumentation Subbench runs should pin these flags.
 - **kern-ai**: a >100k-token agent prompt with a 5-tool turn re-sends the full prompt 6× =
   600k input tokens for one message; byte-identical prefixes are required ("one token
   difference invalidates the entire cache"), busted by sliding-window drift, summary churn,
@@ -483,14 +483,14 @@ Sources:
 
 ## Subscription-vs-API Value Comparisons
 
-Prior attempts at the exact break-even / value-multiple arithmetic SubBench produces
+Prior attempts at the exact break-even / value-multiple arithmetic Subbench produces
 (2026-07-13 sweep).
 
-- **ccusage** (github.com/ryoppippi/ccusage) and **CC-Ledger** already implement SubBench's
+- **ccusage** (github.com/ryoppippi/ccusage) and **CC-Ledger** already implement Subbench's
   API-side arithmetic: read local Claude Code session usage blocks
   (input/output/cache-write/cache-read) and multiply by LiteLLM's public per-token API
   pricing to produce a *hypothetical API-equivalent USD cost* for subscription usage.
-  **Important caveat for SubBench:** this prices cache reads at the API's 0.1×, so the
+  **Important caveat for Subbench:** this prices cache reads at the API's 0.1×, so the
   ccusage dollar figure is an **API-equivalent upper bound**, not the subscriber's true
   quota drain (the meter's cache weighting is unknown; reads may be ~free on-meter). Use
   ccusage numbers as the API comparison anchor, never as the subscription drain itself.
@@ -498,7 +498,7 @@ Prior attempts at the exact break-even / value-multiple arithmetic SubBench prod
   ~31× on a $200 Codex sub ($6.2k API-equivalent in 30 days); a fully-maxed top tier ≈
   "$15k in tokens"; per-question trivial tasks ~$0.50 (Opus) to ~$1 (Fable) on metered API.
   Multiples of 10–75× are commonly claimed and depend entirely on how hard the sub is
-  maxed — which is exactly why SubBench leads with break-even, not the multiple.
+  maxed — which is exactly why Subbench leads with break-even, not the multiple.
 - Market context: OpenAI's $100 tier explicitly targets developers hitting Codex/Claude
   limits; token-per-task keeps rising ("models became chatty"); tiers and economics move
   frequently — reinforcing the nonstationarity caveat and periodic re-baselining.
@@ -528,9 +528,9 @@ Existing work does not yet answer:
   2026-07-13 sweep found only one hobbyist's uncalibrated guess (lugia19) and confirmed the
   meter % is opaque server output — so this is still open, and it is the pivot.
 
-SubBench targets that gap.
+Subbench targets that gap.
 
-## Synthesis for SubBench (2026-07-13 HN deep-research sweep)
+## Synthesis for Subbench (2026-07-13 HN deep-research sweep)
 
 What to adopt, what others already solved, what contradicts current methodology, and
 whether the pivot is answered. The sweep read the anchor HN thread (item 48883275, 339
@@ -540,7 +540,7 @@ tool and an adversarial re-verification of the pivot claim.
 **Adopt / don't rebuild:**
 
 - **claude-meter** (abhishekray07) is the reference rig to build on, not reinvent. It
-  already does what SubBench's proxy plan needs *and more* than Systima's rig: reads the
+  already does what Subbench's proxy plan needs *and more* than Systima's rig: reads the
   response usage block (4 token fields), parses the `anthropic-ratelimit-unified-5h/7d`
   utilization headers, reassembles SSE usage, stores normalized JSONL, and has a
   cache-read-weight knob. Reading it before writing our own capture code is the highest-
@@ -549,7 +549,7 @@ tool and an adversarial re-verification of the pivot claim.
 - **The meter is read, not derived.** Every serious quota tool reads a server endpoint
   (Claude OAuth `/usage` `limits` array; Codex `account/rateLimits/read` `usedPercent`;
   Z.ai `monitor/usage/quota/limit`; claude.ai SSE `message_limit` float for exact Claude
-  capacity). SubBench should read these directly and treat local token logs as the *API
+  capacity). Subbench should read these directly and treat local token logs as the *API
   side* only. cc-rate-widget's negative result (official % not reconstructable from local
   logs) confirms this is not a shortcut we can take.
 - **ccusage's method = our API side, already built.** It is the exact local-usage ×
@@ -628,9 +628,9 @@ Full report + ranked recommendation memo:
   benchmark/leaderboard. Valid neutral harness; unnecessary since the record exists.
 - **OpenCode** (`anomalyco/opencode`, MIT, 185,367★) — model-agnostic, first-class Z.AI
   provider, headless `run --format json --auto`, native cost via `stats`/`export`; lower,
-  cache-stable prompt overhead than Claude Code (Systima). **Disqualified for SubBench**:
+  cache-stable prompt overhead than Claude Code (Systima). **Disqualified for Subbench**:
   (a) Anthropic legal action (Mar 2026, PR #18186) removed its Claude Pro/Max
-  subscription-auth plugin — the exact subscription-drive capability SubBench measures;
+  subscription-auth plugin — the exact subscription-drive capability Subbench measures;
   (b) it re-pays its prompt baseline per turn, so its per-task cost is **not comparable** to
   the mini-swe-agent board, defeating "neutral."
 

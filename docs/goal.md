@@ -1,12 +1,12 @@
 # Goal
 
-SubBench exists to measure the real developer value of AI coding subscriptions.
+Subbench exists to measure the real developer value of AI coding subscriptions.
 
 The project's central question is:
 
 > Which subscription gives more successful developer work per dollar, under a defined benchmark workload and measurement window?
 
-The intended output is not a universal provider ranking. A defensible SubBench result should be scoped:
+The intended output is not a universal provider ranking. A defensible Subbench result should be scoped:
 
 ```text
 For this task mix, on these subscription plans, during this measurement window,
@@ -26,11 +26,11 @@ AI coding subscriptions are hard to compare because they combine several opaque 
 - product-specific throttling
 - subscription price
 
-Most public comparisons collapse these into subjective impressions. SubBench separates them into measurable components.
+Most public comparisons collapse these into subjective impressions. Subbench separates them into measurable components.
 
-## What SubBench Measures
+## What Subbench Measures
 
-SubBench should measure:
+Subbench should measure:
 
 - successful task completion
 - cost per successful task
@@ -67,7 +67,7 @@ Higher is better.
 
 ## Interpretation
 
-SubBench should help answer practical decisions:
+Subbench should help answer practical decisions:
 
 - Which plan should a developer keep?
 - Which plan is best for high-volume routine coding?

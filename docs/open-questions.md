@@ -1,12 +1,12 @@
 # Open questions
 
-Unknowns that affect how SubBench measures and reports value. This is the durable,
+Unknowns that affect how Subbench measures and reports value. This is the durable,
 narrative home for open questions; [methodology.md](methodology.md) lists the terse V1
 subset inline where they bear on the formula. Update both together when one changes.
 
 ## Operating stance: black box first, curiosity second
 
-SubBench's stance is **value-first and black-box**. We measure what a user actually
+Subbench's stance is **value-first and black-box**. We measure what a user actually
 experiences — successful developer work per window-dollar — without requiring any theory
 of how a provider's meter works internally. A user comparing two offers does not need to
 know whether a plan is metered in tokens, dollars, or credits; they need to know which

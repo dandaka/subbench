@@ -1,13 +1,13 @@
-# SubBench
+# Subbench
 
-SubBench is developing a calibration framework; subscription value has not yet been measured.
+Subbench is developing a calibration framework; subscription value has not yet been measured.
 
 Most public comparisons answer one of two questions:
 
 - Which model or agent solves more coding tasks?
 - Which model or agent is cheaper through API pricing?
 
-SubBench focuses on the missing third question:
+Subbench focuses on the missing third question:
 
 > How much successful developer work does a flat-rate AI subscription actually buy?
 
@@ -76,7 +76,7 @@ Developers often compare subscriptions using anecdotes:
 - "Z.ai is cheaper."
 - "This plan hits limits too fast."
 
-Those claims may be true for a given workflow, but they are usually not backed by reproducible data. SubBench aims to make those comparisons measurable.
+Those claims may be true for a given workflow, but they are usually not backed by reproducible data. Subbench aims to make those comparisons measurable.
 
 ## Project Status
 
@@ -117,8 +117,8 @@ A zero command exit status counts as success. Use the run flags to preserve retr
 limit events, promotions, peak hours, and drain-cap aborts.
 
 For an automated usage indicator, replace both explicit usage values with
-`--usage-command 'provider-usage --numeric'`; SubBench invokes it immediately before and
-after the task. In an interactive terminal, `--post-usage` may be omitted and SubBench
+`--usage-command 'provider-usage --numeric'`; Subbench invokes it immediately before and
+after the task. In an interactive terminal, `--post-usage` may be omitted and Subbench
 will prompt after the run.
 
 For a real DeepSWE study, first inspect and verify the already frozen input lock:

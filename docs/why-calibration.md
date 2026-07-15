@@ -1,6 +1,6 @@
 # Why calibration? (Why not just use tokens?)
 
-This is the first objection anyone raises about SubBench, so it is worth answering
+This is the first objection anyone raises about Subbench, so it is worth answering
 plainly.
 
 ## The objection
@@ -11,12 +11,12 @@ plainly.
 > imported cost × bucket size. Why run any tasks against a real subscription at all? And
 > does it even matter *which* tasks we run?
 
-Half of this is correct, and SubBench already does the correct half. The other half
+Half of this is correct, and Subbench already does the correct half. The other half
 assumes away exactly the thing that is unknown.
 
 ## What is already arithmetic (we agree, and we import it)
 
-SubBench does **not** re-run tasks to discover their cost. Per-model, per-task token and
+Subbench does **not** re-run tasks to discover their cost. Per-model, per-task token and
 API-dollar cost is imported from a published benchmark (DeepSWE), where every model runs
 on the same harness so the numbers are comparable. See
 [methodology.md](methodology.md) → *Task Cost Sources*.
@@ -62,7 +62,7 @@ The plan is a product: system prompt, agent scaffolding, caching policy, retries
 same task costs different tokens through Cursor's harness than through the raw API, on
 the identical model. The imported cost was measured on a *different* harness
 (mini-swe-agent). Tokens-per-task is a property of `(model × harness × task)`, not of the
-model alone. SubBench records this as the harness-mismatch disclaimer rather than
+model alone. Subbench records this as the harness-mismatch disclaimer rather than
 pretending it away.
 
 ### 3. Success is not free, and tokens spent failing have zero value

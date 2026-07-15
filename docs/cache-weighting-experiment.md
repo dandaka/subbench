@@ -14,7 +14,7 @@ meter does the same, subscription drain is linear in API-equivalent cost and a s
 conversion factor suffices for every workload. If instead the meter counts raw tokens or
 per-message credits (no cache discount), then drain-per-API-dollar depends on the
 workload's cache-hit ratio, and the conversion factor is workload-specific — which would
-force SubBench to model provider structure (the one trigger for abandoning the black-box
+force Subbench to model provider structure (the one trigger for abandoning the black-box
 stance, per open-questions.md).
 
 Answering it needs two workloads with **the same API-equivalent cost but very different

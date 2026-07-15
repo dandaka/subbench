@@ -15,7 +15,7 @@ tags: [subbench, zai, glm-5.2, deepswe, neutral-harness, opencode, pi.dev, econo
 ## Executive Summary
 
 1. **The premise collapsed: a published GLM-5.2 neutral-harness economics record now
-   exists.** The live DeepSWE v1.1 leaderboard — SubBench's own adopted source — lists
+   exists.** The live DeepSWE v1.1 leaderboard — Subbench's own adopted source — lists
    `glm-5.2[max]` at **Pass@1 44%±2%, avg cost $3.92/task, 78k output tokens, 129 steps**,
    all models run on **mini-swe-agent** for consistency, "113 tasks · updated July 9,
    2026" [1]. Verified by fetching the page directly. The Z.ai economics gap can be
@@ -35,10 +35,10 @@ tags: [subbench, zai, glm-5.2, deepswe, neutral-harness, opencode, pi.dev, econo
    memory note `zai-no-published-economics.md` was correct about the snapshot and is now
    stale about upstream.
 
-4. **OpenCode is disqualified for SubBench specifically — twice over.** (a) Anthropic
+4. **OpenCode is disqualified for Subbench specifically — twice over.** (a) Anthropic
    took legal action against OpenCode (Mar 2026); the resulting PR removed its Claude
    Pro/Max **subscription-auth plugin** — the exact "drive an agent off a $20/mo
-   subscription" capability SubBench's premise depends on [6][7]. (b) OpenCode re-pays its
+   subscription" capability Subbench's premise depends on [6][7]. (b) OpenCode re-pays its
    system-prompt baseline every turn (no tool-call batching), so its per-task cost profile
    is **not comparable** to mini-swe-agent's — it fails the cross-harness comparability
    that "neutral" is supposed to guarantee [8].
@@ -47,7 +47,7 @@ tags: [subbench, zai, glm-5.2, deepswe, neutral-harness, opencode, pi.dev, econo
    API-priced figure.** GLM-5.2 appears on the board **only at the `[max]` tier**. The
    pass@1 / tokens / steps are directly usable; the **$3.92 is a benchmark API reference
    price, not a Z.ai subscription window-dollar cost** — converting between them is
-   SubBench's own job and is governed by the existing Harness Mismatch Disclaimer.
+   Subbench's own job and is governed by the existing Harness Mismatch Disclaimer.
 
 ## Key Findings
 
@@ -63,15 +63,15 @@ model [1]:
 - Output tokens: **78k**
 - Steps: **129**
 
-This satisfies every requirement of a SubBench economics source (methodology.md → *Task
+This satisfies every requirement of a Subbench economics source (methodology.md → *Task
 Cost Sources*): neutral/uniform harness across models, published, per-model pass@1 **and**
-per-task cost + output tokens. It is the same source SubBench already adopted for the other
+per-task cost + output tokens. It is the same source Subbench already adopted for the other
 four models — no new source-trust decision is required.
 
 The adversarial pass confirmed the row by independent re-fetch and flagged the correct
 caveats (below), not a refutation [8].
 
-### Finding 2 — Why SubBench believed "none exists": stale local snapshot vs. live upstream
+### Finding 2 — Why Subbench believed "none exists": stale local snapshot vs. live upstream
 
 The local frozen snapshot contains only four models and no GLM-5.2:
 
@@ -99,7 +99,7 @@ scaffold. It ships **no** benchmark/leaderboard and favors "real-world OSS sessi
 "toy benchmarks" per its README. Verdict: a valid neutral harness, but since the record
 already exists, **it is unnecessary for closing the Z.ai gap.**
 
-### Finding 4 — OpenCode: real, "more favorable" on overhead, but disqualified for SubBench
+### Finding 4 — OpenCode: real, "more favorable" on overhead, but disqualified for Subbench
 
 `github.com/anomalyco/opencode` — **MIT, 185,367★, created 2025-04-30, pushed 2026-07-13**
 [GitHub API]. The `sst/opencode` → `anomalyco/opencode` rename is real; the original
@@ -110,17 +110,17 @@ option, headless `opencode run --format json --auto`, and native per-session cos
 on one axis: the Systima study measured OpenCode ~7k-token baseline vs Claude Code ~33k,
 with a **byte-identical, cache-stable** request prefix [8][research.md].
 
-**But it is disqualified for SubBench on two independent grounds:**
+**But it is disqualified for Subbench on two independent grounds:**
 
 - **Legal cloud, directly on-point.** "Anthropic takes legal action against OpenCode"
   (HN, Mar 2026); PR #18186 removed the **Claude Pro/Max subscription-auth plugin** —
-  precisely the "run a coding agent off a subscription" capability SubBench measures
-  [6][7]. Building SubBench's subscription-side tooling on OpenCode courts the same
+  precisely the "run a coding agent off a subscription" capability Subbench measures
+  [6][7]. Building Subbench's subscription-side tooling on OpenCode courts the same
   conflict.
 - **Not cross-harness comparable.** OpenCode re-pays its system-prompt baseline every
   turn (no tool-call batching), structurally inflating per-task tokens vs. mini-swe-agent.
   A cost produced by OpenCode is **not** comparable to the DeepSWE board — defeating the
-  purpose of "neutral" [8]. (This is the same per-turn cache-rewrite dynamic SubBench
+  purpose of "neutral" [8]. (This is the same per-turn cache-rewrite dynamic Subbench
   already documents for Claude Code.)
 
 ### Finding 5 — Self-generation (Path 3) is now mostly moot but cheap if ever needed
@@ -135,7 +135,7 @@ launched 2026-06-16): **$1.40/M input, $4.40/M output, $0.26/M cached** [11].
 Rough self-generation cost, **extrapolated (not measured)** tokens/task: ~$0.28/task →
 **~$31 for 113 tasks** first-party (~$21 via OpenRouter); budget **$30–80**, wall-clock
 **<1hr parallel on Modal** or ~15–19hr serial. Treat the dollar figure as a guess, not a
-costed estimate — tokens/task is unmeasured. **This path is only worth reviving if SubBench
+costed estimate — tokens/task is unmeasured. **This path is only worth reviving if Subbench
 needs a GLM-5.2 effort tier other than `[max]`**, which the board does not publish.
 
 ## Contradictions & Open Questions
@@ -148,7 +148,7 @@ needs a GLM-5.2 effort tier other than `[max]`**, which the board does not publi
 - **Effort-tier mismatch.** DeepSWE publishes GLM-5.2 at `[max]` only. Whether `[max]`
   reflects a typical Z.ai coding-plan user's effort is unresolved and is a labeling
   decision for the operator, not a measurement fact. Ingest as `[max]`-labeled.
-- **API price vs. window-dollar.** $3.92 is DeepSWE's API-priced cost. SubBench's SVI is a
+- **API price vs. window-dollar.** $3.92 is DeepSWE's API-priced cost. Subbench's SVI is a
   window-dollar quantity; the conversion is the project's existing job under the Harness
   Mismatch Disclaimer. Do not equate the two.
 - **Could not verify:** whether the leaderboard's `glm-5.2` is byte-identical to the model
@@ -181,13 +181,13 @@ needs a GLM-5.2 effort tier other than `[max]`**, which the board does not publi
 
 **Recommended path: #1 — ingest the existing DeepSWE glm-5.2[max] row.** The neutral-harness
 tooling hunt (pi.dev / OpenCode / self-generation) that motivated this research is **moot**:
-the record SubBench needs already exists on the source it already trusts.
+the record Subbench needs already exists on the source it already trusts.
 
 **Exact methodology/protocol changes this requires (do NOT apply — operator decision, R.2):**
 
 1. **Re-pull the DeepSWE v1.1 snapshot** to include GLM-5.2. The current local freeze
    (`data/deepswe-v1.1-calibration-tasks.json`, 4 models) predates the GLM-5.2 addition.
-   This is a **data-refresh**, not a methodology change — SubBench stays import-only; Path 3
+   This is a **data-refresh**, not a methodology change — Subbench stays import-only; Path 3
    (run-once) is **not** triggered.
 2. **Populate Z.ai's SVI** from the GLM-5.2 row (pass@1 44%, out tok 78k), labeled
    **`effort: [max]`**, with `$3.92` recorded as the **API reference price**, not a
@@ -198,7 +198,7 @@ the record SubBench needs already exists on the source it already trusts.
 4. **At publish time**, run the existing cross-source sanity check (methodology.md) on the
    GLM-5.2 pass@1/cost against an independent board (Artificial Analysis covers GLM-5.2;
    SWE-bench Pro Scale set lists it at 62.1% but without a per-task-cost column).
-5. **Do NOT adopt OpenCode or pi.dev** as a SubBench harness for this gap. If a future V2
+5. **Do NOT adopt OpenCode or pi.dev** as a Subbench harness for this gap. If a future V2
    ever needs native-harness economics, note OpenCode's Anthropic legal exposure and its
    non-comparable per-turn cost profile as disqualifiers to record then.
 

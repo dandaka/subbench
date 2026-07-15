@@ -70,7 +70,7 @@ export function renderMarkdown(records: ReportRecord[]): string {
     "task_manifest",
   ] as const;
   const lines = [
-    "# SubBench calibration report",
+    "# Subbench calibration report",
     "",
     "> **Non-generalization warning:** this is a fixed calibration-set report, not a provider " +
       "ranking and not an estimate of developer work generally. Primary metric: native " +
