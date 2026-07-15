@@ -3,6 +3,19 @@
 This log records durable changes and decisions that affect future work. It is not a
 measurement run log and does not establish publication evidence.
 
+## 2026-07-15 — Docs cleanup: removed spent handoff prompts, fixed dead links
+
+- Deleted two spent handoff docs whose work is complete and captured elsewhere:
+  `docs/handoff-claude-proxy-failure.md` (marked RESOLVED; fix lives in the
+  `packages/proxy/src/verify.ts` commits and is reflected in `plan.md`) and
+  `handoff-hn-deep-research.md` (root; research folded into `docs/research.md`).
+- Kept `handoff-zai-economics-research.md` (root) — despite the name it is now the
+  live Z.ai economics **report**, referenced by `research.md`, `plan.md`, and
+  `cache-weighting-rig-task.md`.
+- Fixed dead links to the already-deleted `handoff-proxy-capture.md` in `plan.md`
+  (step 1.1) and `cache-weighting-rig-task.md` (Part A note); both now point at the
+  built `packages/proxy/src/` code.
+
 ## 2026-07-15 — Same-window comparison constraint dropped (operator decision)
 
 - Operator decision: cross-provider window alignment is impossible in principle (quota

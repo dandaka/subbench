@@ -28,9 +28,8 @@ being wrong, but it does **not** remove two constraints:
 
 ## Part A — build the capture rig
 
-> A build handoff already exists (`handoff-proxy-capture.md`, repo root) and a
-> `packages/proxy/` skeleton is in progress against it (`capture.ts`, `forward.ts`,
-> `server.ts`). That handoff is the authoritative build spec; this Part A only adds the
+> The capture rig is built and merged in `packages/proxy/src/` (`capture.ts`,
+> `forward.ts`, `server.ts`, etc.). That code is the authoritative build; this Part A only adds the
 > claude-meter-informed requirements the sweep surfaced (A4 additions, A5 acceptance
 > checks). Reconcile the two before building — do not fork a second rig.
 

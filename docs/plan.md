@@ -36,7 +36,7 @@ with the capture proxy.
 ## Phase 1 — Build the capture rig (Part A) — WHO: agent — DONE (built + merged 2026-07-13, commits 1b07269 / merge 21152cf)
 
 - [x] 1.1 Reconcile the `packages/proxy/` skeleton with the spec
-      (`handoff-proxy-capture.md` at repo root is the fresh-session prompt).
+      (built out in `packages/proxy/src/`).
 - [x] 1.2 Build: pass-through forwarder (zero envelope, lossless tee), per-request
       capture (usage block, served model, `anthropic-ratelimit-unified-5h/7d`
       headers), SSE reassembly, hash-chained audit log, zero-envelope verification
