@@ -107,7 +107,7 @@ Follows [cache-weighting-experiment.md](cache-weighting-experiment.md) §3–§6
 - **Provider order:** Claude first, then Codex. **Not Z.ai** — it carries `economics_gap`
   (local DeepSWE freeze lacks GLM-5.2), so `api_equivalent_usd` is unavailable and the ratio
   cannot be computed (§5). (Upstream DeepSWE v1.1 now publishes `glm-5.2[max]`; the gap
-  closes on a re-pull — see R.1 / `handoff-zai-economics-research.md` — but treat Z.ai as
+  closes on a re-pull — see R.1 / `research-zai-economics.md` — but treat Z.ai as
   gapped here until that lands.)
 - **Regression route, not the two-arm test.** Run ordinary protocol §4 contiguous batches
   with the proxy in place, then regress batch-level drain deltas on the batches'

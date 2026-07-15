@@ -134,7 +134,7 @@ local snapshot, not a missing record.
       (`data/deepswe-v1.1-calibration-tasks.json`, 4 models) predates it. pi.dev and
       OpenCode are valid neutral harnesses but moot for this gap (OpenCode also legally
       clouded by Anthropic + cost-incomparable). Report + ranked memo:
-      [handoff-zai-economics-research.md](../handoff-zai-economics-research.md).
+      [research-zai-economics.md](research-zai-economics.md).
 - [x] R.2 Operator decision: re-pull chosen (2026-07-13).
 - [x] R.3 Re-pull executed (2026-07-13): regenerated `data/deepswe-v1.1-calibration-tasks.json`
       from the archived 2026-07-10 upstream artifacts (tasks.json + trials.json) with the

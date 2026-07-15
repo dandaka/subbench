@@ -595,7 +595,7 @@ verification) are archived from the sweep; only distilled findings are recorded 
 
 Deep-research sweep for a GLM-5.2 neutral-harness economics record (pass@1 + cost/task).
 Full report + ranked recommendation memo:
-[handoff-zai-economics-research.md](../handoff-zai-economics-research.md). Headline: the
+[research-zai-economics.md](research-zai-economics.md). Headline: the
 "no record exists" premise was **stale** — DeepSWE v1.1 upstream now publishes GLM-5.2.
 
 **Candidates found**

@@ -3,6 +3,15 @@
 This log records durable changes and decisions that affect future work. It is not a
 measurement run log and does not establish publication evidence.
 
+## 2026-07-15 — Renamed Z.ai research report, moved into docs/
+
+- Renamed `handoff-zai-economics-research.md` (repo root) → `docs/research-zai-economics.md`:
+  despite the `handoff-*` name it is the live Z.ai economics **report**, not a handoff
+  prompt, and belongs alongside the other research docs.
+- Updated its live references in `research.md`, `plan.md`, and
+  `cache-weighting-rig-task.md`. Historical mentions in earlier log entries are left as-is
+  (they record the name in use at the time).
+
 ## 2026-07-15 — Docs cleanup: removed spent handoff prompts, fixed dead links
 
 - Deleted two spent handoff docs whose work is complete and captured elsewhere:
@@ -11,7 +20,8 @@ measurement run log and does not establish publication evidence.
   `handoff-hn-deep-research.md` (root; research folded into `docs/research.md`).
 - Kept `handoff-zai-economics-research.md` (root) — despite the name it is now the
   live Z.ai economics **report**, referenced by `research.md`, `plan.md`, and
-  `cache-weighting-rig-task.md`.
+  `cache-weighting-rig-task.md`. (Renamed/moved to `docs/research-zai-economics.md` in
+  the next commit.)
 - Fixed dead links to the already-deleted `handoff-proxy-capture.md` in `plan.md`
   (step 1.1) and `cache-weighting-rig-task.md` (Part A note); both now point at the
   built `packages/proxy/src/` code.
@@ -191,7 +201,8 @@ measurement run log and does not establish publication evidence.
   its subscription-auth plugin, and its per-turn prompt re-payment makes its costs
   non-comparable to the mini-swe-agent board.
 - Affected artifacts: report + ranked memo in
-  [handoff-zai-economics-research.md](../handoff-zai-economics-research.md); new subsection
+  [research-zai-economics.md](research-zai-economics.md) (then named
+  `handoff-zai-economics-research.md` at repo root); new subsection
   *Z.ai / GLM Economics Sources* in [research.md](research.md); R.1 ticked and R.2
   recommendation noted in [plan.md](plan.md); auto-memory `zai-no-published-economics.md`
   corrected (upstream now publishes; its warning against fabricating a row from the 4-model
