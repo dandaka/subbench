@@ -3,6 +3,13 @@
 This log records durable changes and decisions that affect future work. It is not a
 measurement run log and does not establish publication evidence.
 
+## 2026-07-15 — Documented Claude proxy failure handoff
+
+- Added `docs/handoff-claude-proxy-failure.md` explaining why Claude measurement did not
+  start: proxy verification proved byte-identical zero-envelope forwarding but failed the
+  required usable-upstream 2xx gate (`401` on the final check, earlier `429`). The handoff
+  records the fixed issues, current blocker, and next diagnostic path.
+
 ## 2026-07-15 — Z.ai calibration advanced to 5/8
 
 - Ran two isolated Z.ai calibration tasks with the required operator isolation
