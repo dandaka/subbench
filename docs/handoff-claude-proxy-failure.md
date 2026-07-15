@@ -2,6 +2,22 @@
 
 Date: 2026-07-15
 
+## RESOLVED (2026-07-15, later session)
+
+Root cause: subscription OAuth tokens are only accepted upstream for Claude Code-shaped
+requests. The verifier's bare probe body lacked the Claude Code system block, so the
+authenticated probe was rejected (observed `429` with message "Error"; the earlier `401`
+came from a stale/unset token in the operator environment — the keychain token was valid).
+Direct upstream probes isolated this: identical request + system block
+`"You are Claude Code, Anthropic's official CLI for Claude."` → `200`; without it → `429`.
+
+Fix: `packages/proxy/src/verify.ts` probe body now includes the Claude Code system block,
+and the evidence file records `upstream_error` (first 500 bytes of a non-2xx upstream
+body) so future failures are diagnosable from evidence alone. Verified end-to-end: proxy
+gate now prints PASS (exit 0) with `byte_identical=true`, `GATEWAY_ENVELOPE_TOKENS=0`,
+`response_status=200`, `served_model=claude-opus-4-8`. `bun test` (90 pass) and
+`bunx tsc --build` clean. The Claude calibration run is unblocked.
+
 ## Summary
 
 Claude Max measurement did not fail inside the benchmark task. It was not started.

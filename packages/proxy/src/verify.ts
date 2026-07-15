@@ -26,14 +26,26 @@ export interface EnvelopeEvidence {
   gateway_envelope_tokens: number;
   served_model: string | null;
   response_status: number;
+  // First 500 bytes of the upstream body when the status is non-2xx, so a failing check
+  // is diagnosable from the evidence file alone (401 invalid-token vs. shape rejection).
+  upstream_error: string | null;
 }
 
 // A trivial, well-formed Messages request. Kept bare and one-line to keep the quota cost
-// of verification negligible.
+// of verification negligible. Subscription OAuth tokens are only accepted for Claude
+// Code-shaped requests: the same probe without the Claude Code system block is rejected
+// upstream (observed 2026-07-15: 429 "Error" without it, 200 with it), so the system
+// block is required for the authenticated 2xx gate to be reachable at all.
 export function bareRequestBody(): string {
   return JSON.stringify({
     model: "claude-opus-4-8",
     max_tokens: 1,
+    system: [
+      {
+        type: "text",
+        text: "You are Claude Code, Anthropic's official CLI for Claude.",
+      },
+    ],
     messages: [{ role: "user", content: "ping" }],
   });
 }
@@ -140,6 +152,8 @@ export async function runEnvelopeCheck(
     gateway_envelope_tokens,
     served_model,
     response_status: response.status,
+    upstream_error:
+      response.status >= 200 && response.status < 300 ? null : raw.slice(0, 500),
   };
 }
 

@@ -22,10 +22,11 @@ task specced ([cache-weighting-rig-task.md](cache-weighting-rig-task.md)).
 Phase 3 burn-in.
 
 **Codex calibration complete** (8/8, Phase 5.1a). Z.ai calibration 5/8 — quota has
-reset, 3 tasks remain. **Claude Max calibration (Phase 3) is the critical-path
-blocker** — the frozen DB has 2 historical rows, but new proxy-captured runs are paused
-until the authenticated proxy envelope verification succeeds; Phases 2–4 all depend on
-operator scheduling a measurement window with the capture proxy.
+reset, 3 tasks remain. **Claude Max calibration (Phase 3) is the critical path** — the
+proxy envelope verification gate now PASSES (2026-07-15: verifier probe needed the
+Claude Code system block for subscription OAuth; fixed in `packages/proxy/src/verify.ts`,
+live PASS recorded). Phases 2–4 depend on the operator scheduling a measurement window
+with the capture proxy.
 
 **Operator action needed:**
 1. Z.ai — run remaining 3 calibration tasks (quota available now)

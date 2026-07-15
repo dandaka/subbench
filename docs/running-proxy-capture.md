@@ -51,6 +51,12 @@ PROXY_AUTHORIZATION="Bearer $CLAUDE_CODE_OAUTH_TOKEN" \\
 bun packages/proxy/src/verify.ts
 ```
 
+The probe body includes the Claude Code system block ("You are Claude Code, Anthropic's
+official CLI for Claude."). This is required: subscription OAuth tokens are rejected
+upstream for requests without it (observed 2026-07-15 as `429`/`401` on the bare probe,
+`200` with the system block). On a non-2xx result, the evidence file's `upstream_error`
+field records the first 500 bytes of the upstream body for diagnosis.
+
 A PASS requires an authenticated 2xx response, `byte_identical=true`, **and**
 `GATEWAY_ENVELOPE_TOKENS=0` (exit 0). Record
 the evidence file's `proxy_version` + result in the run's `logging proxy present

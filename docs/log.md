@@ -3,6 +3,21 @@
 This log records durable changes and decisions that affect future work. It is not a
 measurement run log and does not establish publication evidence.
 
+## 2026-07-15 — Claude proxy gate unblocked (verifier probe shape fix)
+
+- Root-caused the failing envelope verification: subscription OAuth tokens are rejected
+  upstream unless the request carries the Claude Code system block ("You are Claude
+  Code, Anthropic's official CLI for Claude."). The bare probe drew `429`; the same
+  probe with the system block returns `200`. The earlier `401` was a stale operator
+  token, not a code defect.
+- `packages/proxy/src/verify.ts`: probe body now includes the Claude Code system block;
+  evidence gains `upstream_error` (non-2xx upstream body excerpt) for diagnosability.
+- `docs/running-proxy-capture.md` documents the probe-shape requirement.
+- Verified live: envelope check PASS (exit 0), `byte_identical=true`,
+  `GATEWAY_ENVELOPE_TOKENS=0`, `response_status=200`. 90 tests + tsc clean.
+- Claude Max calibration is unblocked; next step is protocol §2 isolation attestation
+  then `calibrate:claude` with `ANTHROPIC_BASE_URL=http://127.0.0.1:8788`.
+
 ## 2026-07-15 — Documented Claude proxy failure handoff
 
 - Added `docs/handoff-claude-proxy-failure.md` explaining why Claude measurement did not
