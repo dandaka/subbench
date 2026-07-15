@@ -95,13 +95,15 @@ with the capture proxy.
       `koota-deferred-mutation-buffer` (drained 0%, did not pass; Pier reported
       `NonZeroAgentExitCodeError`). 3 tasks remain — ready to run now.
 
-**Same-window constraint (goal.md).** The goal's claim is comparative — "plan A
-delivered more than plan B *during this measurement window*" — and results expire at
-the end of their weekly window. To publish the comparison (not just per-plan numbers),
-the Claude Max (Phase 3) and Codex (Phase 5.1) measurements must land **in the same
-weekly window**. Schedule them as one coordinated measurement week; if they can't be
-co-scheduled, the first publication is per-plan only and the comparison waits for a
-shared window.
+**Window comparability (revised 2026-07-15, operator decision).** Provider quota
+windows are per-account and anchored differently, so cross-provider window alignment is
+impossible in principle. The comparison is therefore **not** gated on same-week
+measurement: cells measured in different calendar windows may be compared, with each
+cell's window dates and the gap between them disclosed (methodology → Nonstationarity →
+Cross-window comparison). Practically: Codex's existing 8/8 batch is usable against a
+Claude Max batch from a later window. Closer windows are still better — co-schedule
+when operator capacity allows, and treat increased measurement frequency as the
+long-term mitigation — but a window gap weakens the caveat, not the publishability.
 
 **Model matrix (V1 scope).** Methodology requires the default model **plus one
 flagship** per plan — two cells per plan. The first coordinated week may cover one
@@ -117,8 +119,8 @@ report carries.
       data committed, versioned, auditable). A website is explicitly **out of scope
       for now** — deferred until quality results exist (see Deferred, below).
 - [ ] 6.4 Publish the first weekly SVI report with grades, n, CIs, caveats,
-      staleness date — comparative if the same-window constraint was met, per-plan
-      otherwise.
+      staleness date — comparative, with per-cell window dates and the window gap
+      disclosed (methodology → Cross-window comparison).
 
 ## Research track — close the Z.ai economics gap — BLOCKED BY: nothing (parallel)
 

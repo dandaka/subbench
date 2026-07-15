@@ -3,6 +3,22 @@
 This log records durable changes and decisions that affect future work. It is not a
 measurement run log and does not establish publication evidence.
 
+## 2026-07-15 — Same-window comparison constraint dropped (operator decision)
+
+- Operator decision: cross-provider window alignment is impossible in principle (quota
+  windows are per-account rolling anchors — e.g. Claude resets Tuesday afternoon, other
+  providers elsewhere), and providers can change terms silently at any moment, so even
+  same-week measurement cannot guarantee regime constancy. Comparisons across cells
+  measured in different calendar windows are therefore **permitted and not discounted**;
+  each cell still measures inside one of its own quota windows, and every comparison
+  discloses per-cell window dates and the gap. More frequent measurement is the
+  long-term mitigation; current operator capacity limits cadence.
+- Practical effect: the existing Codex 8/8 batch is usable against a later Claude Max
+  batch; the first publication can be comparative without a coordinated week.
+- Affected: `docs/methodology.md` (Nonstationarity → new Cross-window comparison
+  subsection; expiry clarified as staleness rule, not comparison bar), `docs/plan.md`
+  (same-window constraint paragraph replaced; step 6.4 reworded).
+
 ## 2026-07-15 — Claude proxy gate unblocked (verifier probe shape fix)
 
 - Root-caused the failing envelope verification: subscription OAuth tokens are rejected

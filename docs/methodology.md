@@ -344,6 +344,30 @@ Providers change limits, models, and plan terms frequently. Every result carries
 The pipeline should be cheap to re-run so results can be refreshed periodically rather
 than treated as permanent.
 
+### Cross-window comparison (operator decision 2026-07-15)
+
+Provider quota windows are per-account and anchored differently (e.g. one account's
+Claude window resets Tuesday afternoon while its Codex window resets on another day), so
+literally aligned cross-provider windows do not exist. SubBench accepts this rather than
+pretending otherwise:
+
+- Each cell is measured inside **one of its own provider's quota windows** (a batch never
+  spans a reset), and the cell's actual window boundaries are published with it.
+- Comparisons across cells measured in **different calendar windows are permitted** and
+  are not discounted. Providers can change terms silently at any moment, so even
+  same-week measurement cannot guarantee both cells saw the same regime; window
+  proximity reduces nonstationarity risk but never eliminates it. Freshness is a
+  disclosed quality attribute, not an admission gate.
+- Every comparison states the per-cell window dates and the gap between them. Wider gaps
+  mean weaker comparability — disclosed, not disqualifying.
+- More frequent measurement is the real mitigation. Current operator capacity limits
+  cadence; as frequency improves, comparisons naturally tighten toward contemporaneous.
+
+"Results expire at the end of their stated weekly window" (Open Questions → weekly
+normalization) is a staleness rule, not a comparison bar: an expired result must carry
+its staleness warning, but it remains usable in comparisons under the disclosure rules
+above until refreshed.
+
 ## ToS Position
 
 Depletion experiments and scripted product usage may conflict with provider terms of
