@@ -3,6 +3,13 @@
 This log records durable changes and decisions that affect future work. It is not a
 measurement run log and does not establish publication evidence.
 
+## 2026-07-16 — Codex capacity established (Phase 5.1b complete)
+
+- OpenAI removed the 5-hour sub-window for Codex Plus; only a weekly percentage meter
+  remains (resets weekly). Capacity recorded as 100%/week in the same unit as calibration
+  drains. No absolute token/credit figure is exposed by the dashboard. The Codex cell
+  now has both calibration (8/8) and capacity data — SVI-computable once Phase 3 lands.
+
 ## 2026-07-16 — Claude Max partial capture batch preserved
 
 - Resolved the live Pier transport issue with an authenticated capture-proxy sidecar

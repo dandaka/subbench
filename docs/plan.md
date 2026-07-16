@@ -29,9 +29,8 @@ live PASS recorded). Phases 2–4 depend on the operator scheduling a measuremen
 with the capture proxy.
 
 **Operator action needed:**
-1. Z.ai — run remaining 3 calibration tasks (quota available now)
-2. Codex — establish weekly capacity (5.1b)
-3. Claude Max — schedule measurement window (Phase 2 gates → Phase 3 runs)
+1. Claude Max — schedule measurement window (Phase 2 gates → Phase 3 runs)
+2. Z.ai — run remaining 3 calibration tasks (quota available now)
 
 **Claude Max Phase 3 status (2026-07-16).** The Pier transport issue is resolved by
 an authenticated proxy sidecar attached to each task's Docker network. Five fresh
@@ -98,8 +97,11 @@ or client environment rows with this batch.
 - [x] 5.1a Codex (OpenAI) calibration batches: **all 8/8 tasks complete** (2026-07-14).
       Drains: 3, 8, 5, 4, 4, 16, 5, 5% (median 5%, mean 6.25%). Pass: 3/8 (37.5%).
       Meter verified (subscription drain confirmed across runs). Isolation attested.
-- [ ] 5.1b Codex capacity establishment (§5 — total weekly capacity in the same quota
-      unit as the drain deltas; without it the cell has no SVI numerator).
+- [x] 5.1b Codex capacity establishment (§5). **Done 2026-07-16.** OpenAI removed the
+      5h sub-window; Codex Plus (€23/mo) now exposes only a weekly percentage meter
+      (resets weekly, next reset 23 Jul). Capacity = 100% per week in the same
+      percentage unit as the calibration drains. No absolute token/credit unit is
+      exposed. As of the reading, 85% remained (15% used this window).
 - [~] 5.2 Z.ai: `economics_gap` **closed** (R.3, 2026-07-13). GLM-5.2[max] economics
       now in the local freeze (Pass@1 44%, $3.92, 129 steps). **Calibration: 5/8 tasks
       done** (2026-07-15); pass rate 1/5 so far. The latest completed tasks were
