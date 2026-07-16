@@ -33,6 +33,16 @@ with the capture proxy.
 2. Codex — establish weekly capacity (5.1b)
 3. Claude Max — schedule measurement window (Phase 2 gates → Phase 3 runs)
 
+**Claude Max Phase 3 status (2026-07-16).** The Pier transport issue is resolved by
+an authenticated proxy sidecar attached to each task's Docker network. Five fresh
+manifest tasks were run with a per-run isolation attestation, paired Max-meter reads,
+and an audit-verified zero-envelope capture chain (523 records). The operator stopped
+the batch after task five: two passed and three failed, with weekly usage moving 0% to
+6%. The remaining three locked tasks were intentionally not run, so this is a
+preserved preliminary batch, **not a publishable Claude cell**. Resume only with a
+fresh isolation attestation before each remaining task; do not mix the older account
+or client environment rows with this batch.
+
 ## Phase 1 — Build the capture rig (Part A) — WHO: agent — DONE (built + merged 2026-07-13, commits 1b07269 / merge 21152cf)
 
 - [x] 1.1 Reconcile the `packages/proxy/` skeleton with the spec
@@ -64,9 +74,11 @@ with the capture proxy.
 
 ## Phase 3 — Claude Max calibration behind the proxy (burn-in) — BLOCKED BY: Phase 2
 
-- [ ] 3.1 Run/refresh the frozen Claude Max calibration batches
+- [~] 3.1 Run/refresh the frozen Claude Max calibration batches
       ([running-claude-max-calibration.md](running-claude-max-calibration.md)) with
-      the proxy capturing. Every batch doubles as cache-weighting evidence.
+      the proxy capturing. Five of eight locked tasks completed in the current
+      measurement; three remain before a publishable cell. Every batch doubles as
+      cache-weighting evidence.
 - [ ] 3.2 Capacity reading at grade `exact` (claude.ai SSE float, protocol §5).
 - [ ] 3.3 Record runs with the new fields (served model + tokenizer generation,
       proxy present, pauses, fan-out, flag state); compute batch-level drain.

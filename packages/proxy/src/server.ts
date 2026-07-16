@@ -72,6 +72,9 @@ if (import.meta.main) {
     port: envInt("PROXY_PORT", 8788),
     upstream: process.env.PROXY_UPSTREAM ?? DEFAULT_UPSTREAM,
     capturesDir: process.env.PROXY_CAPTURES_DIR ?? "./.subbench/proxy-captures",
+    ...(process.env.PROXY_HOSTNAME
+      ? { hostname: process.env.PROXY_HOSTNAME }
+      : {}),
   });
   console.error(
     `[${PROXY_VERSION}] pass-through proxy listening on ${server.url} → ${

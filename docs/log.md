@@ -3,6 +3,39 @@
 This log records durable changes and decisions that affect future work. It is not a
 measurement run log and does not establish publication evidence.
 
+## 2026-07-16 — Claude Max partial capture batch preserved
+
+- Resolved the live Pier transport issue with an authenticated capture-proxy sidecar
+  attached to each task network. Five fresh locked-manifest runs used the pinned
+  Claude Code 2.1.208 client, a per-run operator isolation attestation, paired
+  read-only meter snapshots, and the zero-envelope capture path.
+- The proxy audit chain verified 523 records end to end. Weekly utilization moved
+  0%→6% across the batch; two tasks passed and three failed. The operator stopped
+  after the fifth task, leaving three locked tasks unrun. This batch is deliberately
+  recorded as preliminary and must not be represented as a publishable Claude cell.
+- Re-exported the deterministic Claude evidence JSON. Raw captures remain local-only;
+  only their aggregate is eligible for publication. Affected: `docs/plan.md`,
+  `data/frozen-studies/deepswe-v1.1-2026-07-10/claude-max.db`, and
+  `data/frozen-studies/deepswe-v1.1-2026-07-10/claude-max.evidence.json`.
+
+## 2026-07-16 — Claude Max capture-batch transport blocker recorded
+
+- Attempted Phase 3 with a fresh operator isolation attestation before every run,
+  a read-only Max-meter probe, passing Docker/Pier nop preflight, and an authenticated
+  zero-envelope proxy verification. No Claude calibration evidence was accepted: the
+  actual Pier agent retried then failed with `ENOTIMP` before it emitted task traffic
+  into the fresh proxy capture chain; all resulting zero-drain rows were deleted.
+- Isolated the surrounding path: the rebuilt task image can reach the Docker-hosted
+  proxy and complete an OAuth `pong` request using `claude-opus-4-8`; the discrepancy
+  is specific to the live Pier agent process. The living plan records Phase 3 as blocked
+  pending that transport fix.
+- Hardened the runner and proxy for the observed environment: tolerant (<1s) reset
+  rendering comparison, Docker-host proxy routing support, forced Claude client image
+  rebuild, explicit full model ID for a custom base URL, and optional proxy bind host.
+  Affected: `scripts/run-claude-deepswe-calibration.ts`,
+  `scripts/pier_claude_subscription.py`, `packages/proxy/src/server.ts`, and
+  `docs/running-claude-max-calibration.md`.
+
 ## 2026-07-15 — Renamed brand SubBench → Subbench
 
 - Replaced `SubBench` → `Subbench` across LICENSE, README, 7 docs, and

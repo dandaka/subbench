@@ -27,7 +27,7 @@ Run from the repo root (`~/projects/subbench`):
 ```bash
 export PATH="/usr/local/bin:/opt/homebrew/bin:$HOME/.local/bin:$HOME/.bun/bin:$PATH"
 bun --version          # Bun installed
-claude --version       # Claude Code installed (2.1.205 used at build time)
+claude --version       # Claude Code installed (2.1.208 used at build time)
 pier --version         # Pier 0.3.0
 docker info            # Docker daemon running
 df -h /                # host free space (keep well above task-image needs)

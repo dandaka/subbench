@@ -10,10 +10,22 @@ base-URL override is required.
 from pier.agents.installed.claude_code import ClaudeCode
 from pier.models.agent.network import NetworkAllowlist
 from pier.models.agent.install import AgentInstallSpec, InstallStep
+from urllib.parse import urlparse
 
 
 class ClaudeMaxClaudeCode(ClaudeCode):
     def network_allowlist(self) -> NetworkAllowlist:
+        # The capture rig is a Docker-hosted, authenticated pass-through proxy.
+        # When it is selected, the agent must connect directly to that local hop;
+        # Pier's filtered egress proxy would otherwise sit in front of it and
+        # reject/loop the host address. The capture proxy remains the only path
+        # to Anthropic, and its zero-envelope check is a pre-run gate.
+        base_url = self._get_env("ANTHROPIC_BASE_URL")
+        if base_url and urlparse(base_url).hostname == "subbench-capture-proxy":
+            # Keep Pier's normal task network so the agent can resolve the
+            # sidecar. Its NO_PROXY rule sends this one local hop directly to
+            # the capture proxy; all external inference remains proxy-owned.
+            return NetworkAllowlist(domains=["subbench-capture-proxy"])
         upstream = super().network_allowlist()
         domains = list(upstream.domains)
         for host in ("api.anthropic.com", "platform.claude.com"):

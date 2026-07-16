@@ -55,8 +55,11 @@ const database = resolve(
   root,
   "data/frozen-studies/deepswe-v1.1-2026-07-10/claude-max.db",
 );
-const model = "opus";
-const claudeVersion = "2.1.205";
+// With a custom ANTHROPIC_BASE_URL, Pier preserves this value verbatim instead
+// of expanding Claude Code's UI alias ("opus"). Use the provider model ID so
+// the Dockerized subscription client accepts the verified pass-through route.
+const model = "claude-opus-4-8";
+const claudeVersion = "2.1.208";
 
 // Post-read retry: the Anthropic usage endpoint can 429. A ~50-minute task
 // leaves ample slack, so retry with backoff before giving up. Exhausting the
@@ -67,6 +70,14 @@ const postReadBackoffMs = 150_000; // 2.5 minutes between attempts (~15 min tota
 function option(name: string): string | undefined {
   const index = process.argv.indexOf(name);
   return index < 0 ? undefined : process.argv[index + 1];
+}
+
+function measurementId(): number {
+  const raw = option("--measurement-id") ?? "1";
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value <= 0)
+    throw new Error(`--measurement-id must be a positive integer, got ${raw}`);
+  return value;
 }
 
 // D4: the operator must attest isolation before any measured task. The attestation is
@@ -85,6 +96,7 @@ function requireIsolationOperator(): string {
 
 function stampIsolation(
   databasePath: string,
+  measurement: number,
   operator: string,
   environmentId: string,
 ): void {
@@ -92,9 +104,9 @@ function stampIsolation(
   try {
     db.run(
       `UPDATE subscription_measurements
-       SET isolation_confirmed_at=?, isolation_confirmed_by=?, environment_id=?
-       WHERE id=1`,
-      [new Date().toISOString(), operator, environmentId],
+       SET isolation_confirmed_at=?, isolation_confirmed_by=?, environment_id=?, product_version=?
+       WHERE id=?`,
+      [new Date().toISOString(), operator, environmentId, claudeVersion, measurement],
     );
   } finally {
     db.close();
@@ -123,14 +135,16 @@ async function prepare(lock: DeepSweLock): Promise<void> {
   await prepareDeepSwe(lock, { benchmark, database, run });
 }
 
-function nextTask(): SelectedTask {
+function nextTask(measurement: number): SelectedTask {
   const requested = option("--task");
   const db = openDatabase(database);
   try {
     const completed = new Set(
       db
-        .query<{ task_id: string }, []>("SELECT task_id FROM runs")
-        .all()
+        .query<{ task_id: string }, [number]>(
+          "SELECT task_id FROM runs WHERE measurement_id=?",
+        )
+        .all(measurement)
         .map((row) => row.task_id),
     );
     const task = requested
@@ -196,12 +210,32 @@ function pierEnvironment(token: string): Record<string, string> {
   // Preserve an explicitly supplied local pass-through proxy.  The default remains
   // Anthropic's endpoint when this variable is unset; proxy use is required for the
   // Phase 3 capture batch and is verified separately before a measurement counts.
+  // Pier runs Claude Code inside Docker, where 127.0.0.1 is the container itself.
+  // Docker Desktop exposes the host-side, verified capture proxy under this stable
+  // hostname, so translate only the documented loopback spelling supplied by the
+  // operator. Other explicit proxy endpoints remain untouched.
+  if (
+    env.ANTHROPIC_BASE_URL === "http://127.0.0.1:8788" ||
+    env.ANTHROPIC_BASE_URL === "http://localhost:8788"
+  ) {
+    env.ANTHROPIC_BASE_URL = "http://host.docker.internal:8788";
+    // Pier configures its task egress proxy by default. Bypass it only for the
+    // local capture hop: that proxy is already bound to the host and forwards
+    // the actual Anthropic request unchanged.
+    env.NO_PROXY = "localhost,127.0.0.1,host.docker.internal";
+    env.no_proxy = env.NO_PROXY;
+  }
+  if (env.ANTHROPIC_BASE_URL === "http://subbench-capture-proxy:8788") {
+    env.NO_PROXY = "localhost,127.0.0.1,subbench-capture-proxy";
+    env.no_proxy = env.NO_PROXY;
+  }
   env.CLAUDE_CODE_OAUTH_TOKEN = token;
   env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = "1";
   return env;
 }
 
 const isolationOperator = requireIsolationOperator();
+const currentMeasurementId = measurementId();
 const lock = readAndVerifyLock(
   root,
   option("--lock") ?? "data/deepswe-v1.1.lock.json",
@@ -209,7 +243,7 @@ const lock = readAndVerifyLock(
 const selection = readLockedSelection<Selection>(root, lock);
 await prepare(lock);
 const environmentId = `deepswe-v1.1-pier-0.3.0-docker-claude-code-${claudeVersion}`;
-stampIsolation(database, isolationOperator, environmentId);
+stampIsolation(database, currentMeasurementId, isolationOperator, environmentId);
 const credential = readClaudeCredential();
 if (!credential.refreshToken) {
   throw new Error(
@@ -217,7 +251,7 @@ if (!credential.refreshToken) {
       "sustain a ~50-minute task. Log in with `claude` (OAuth) first.",
   );
 }
-const task = nextTask();
+const task = nextTask(currentMeasurementId);
 const pre = await readClaudeUsageSnapshot();
 const plan = (pre.account.plan ?? "").toLowerCase();
 if (plan !== "max" && plan !== "claude_max") {
@@ -267,8 +301,17 @@ const exitCode = await run(
     `version=${claudeVersion}`,
     "--agent-kwarg",
     "reasoning_effort=xhigh",
+    // Pier rebuilds the agent environment from explicit agent variables. Keep
+    // the Docker-to-host capture hop outside Pier's egress proxy; otherwise
+    // host.docker.internal is sent to Squid and rejected before it reaches the
+    // verified local pass-through proxy.
+    "--agent-env",
+    "NO_PROXY=localhost,127.0.0.1,host.docker.internal,subbench-capture-proxy",
+    "--agent-env",
+    "no_proxy=localhost,127.0.0.1,host.docker.internal,subbench-capture-proxy",
     "--env",
     "docker",
+    "--force-build",
     "--n-concurrent",
     "1",
     "--jobs-dir",
@@ -299,7 +342,18 @@ const postWeekly = selectWindow(post, "weekly");
 if (post.account.idHash !== pre.account.idHash) {
   throw new Error("account changed between pre- and post-read; run discarded");
 }
-if (postWeekly.resetsAt !== preWeekly.resetsAt) {
+// Anthropic can render the same server-side reset boundary a few hundred
+// milliseconds apart across reads. Match the persistence-layer tolerance: a
+// material shift still discards the run, while timestamp formatting jitter does
+// not turn a valid paired measurement into a false reset.
+const weeklyResetDriftMs =
+  preWeekly.resetsAt && postWeekly.resetsAt
+    ? Math.abs(Date.parse(preWeekly.resetsAt) - Date.parse(postWeekly.resetsAt))
+    : 0;
+if (
+  preWeekly.resetsAt !== postWeekly.resetsAt &&
+  weeklyResetDriftMs > 1_000
+) {
   throw new Error("weekly quota window reset during the task; run discarded");
 }
 const success =
@@ -319,7 +373,7 @@ try {
     .all(1)
     .map((row) => row.drain);
   const runId = insertRun(db, {
-    measurement_id: 1,
+    measurement_id: currentMeasurementId,
     benchmark_source_id: 1,
     task_id: task.id,
     harness_environment_id: environmentId,
