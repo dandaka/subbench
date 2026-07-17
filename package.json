@@ -18,6 +18,7 @@
     "preflight:calibration": "bun run scripts/preflight-deepswe-calibration.ts",
     "export:calibration-evidence": "bun run scripts/export-calibration-evidence.ts",
     "probe:claude": "bun run scripts/probe-claude-usage.ts",
+    "isolation:claude": "bun run scripts/claude-isolation-sweep.ts",
     "test": "bun test",
     "typecheck": "tsc --build",
     "lint": "biome check .",

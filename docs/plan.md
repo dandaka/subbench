@@ -67,9 +67,10 @@ or client environment rows with this batch.
       subscription window, not API/credits; record `meter_verified`. — agent+operator
 - [ ] 2.2 Pin cache-busting flags (protocol §4): telemetry/TTL state,
       git-instructions flag or quiescent tree; record state. — agent
-- [ ] 2.3 Isolation attestation (protocol §2): confirm nothing else uses the
-      account; recorded via `--confirm-isolation`. — **operator only**, repeated
-      before every measured run.
+- [ ] 2.3 Isolation attestation (protocol §2): inventory local Claude CLI sessions
+      with `bun run isolation:claude`, optionally terminate them with its explicit
+      named-operator flag, then confirm nothing else uses the account; recorded via
+      `--confirm-isolation`. — **operator only**, repeated before every measured run.
 
 ## Phase 3 — Claude Max calibration behind the proxy (burn-in) — BLOCKED BY: Phase 2
 

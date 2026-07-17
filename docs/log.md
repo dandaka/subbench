@@ -3,6 +3,20 @@
 This log records durable changes and decisions that affect future work. It is not a
 measurement run log and does not establish publication evidence.
 
+## 2026-07-17 — Added opt-in Claude local isolation sweep
+
+- Added `bun run isolation:claude` to inventory locally running Claude CLI processes
+  before a calibration attestation. Its opt-in terminating mode requires a named operator,
+  sends graceful `SIGTERM` only, rechecks processes, and never claims to establish
+  account-wide isolation.
+- Updated the Claude Max runbook and protocol to require the operator's separate manual
+  check of browser, other-machine, automation, API, and shared-seat use. Affected:
+  `scripts/claude-isolation-sweep.ts`, `package.json`, `docs/running-claude-max-calibration.md`,
+  `docs/protocol.md`, and `docs/plan.md`.
+- Added the operator's fixed every-run launch checklist: quit Claude Code, cmux, and
+  Dayflow; log out on all other machines; then complete the local sweep and fresh
+  account-wide attestation.
+
 ## 2026-07-16 — Codex capacity established (Phase 5.1b complete)
 
 - OpenAI removed the 5-hour sub-window for Codex Plus; only a weekly percentage meter

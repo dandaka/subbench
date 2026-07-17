@@ -56,6 +56,14 @@ manually verify and explicitly confirm that nothing else is consuming the subscr
 The operator records this confirmation (checkbox or signed line in the run log) before the
 first measured task. A run without a recorded confirmation is invalid and must be discarded.
 
+For Claude Code on the local measurement machine, run the documented local-session
+inventory before this attestation. It may gracefully terminate local CLI sessions only
+with an explicit operator flag; it is not an account-wide guarantee and does not replace
+checking browser sessions, other machines, automation, API callers, or shared-seat users.
+The Claude calibration runbook's every-run launch checklist specifically requires quitting
+the Claude Code desktop app, cmux, and Dayflow; logging out on other machines; and then
+re-running the local inventory until it reports no Claude CLI sessions.
+
 ## 3. Import economics
 
 Transcribe the adopted benchmark snapshot into a JSON bundle. Preserve its neutral

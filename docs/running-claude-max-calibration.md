@@ -39,6 +39,26 @@ The Max plan must be logged in through Claude Code's **OAuth** login (not a
 inference-only token cannot sustain a ~50-minute task). Confirm the login and
 the plan with the probe below.
 
+## Measurement-window launch checklist (every run)
+
+Before each calibration task, the operator must complete every item below, then
+run the local session sweep and provide the runner's isolation attestation:
+
+- [ ] Quit the Claude Code desktop app and any standalone Claude CLI terminals.
+- [ ] Quit cmux so it cannot resume suspended Claude sessions.
+- [ ] Quit Dayflow and any other local automation that can invoke Claude.
+- [ ] Log out of Claude on every other machine using this subscription.
+- [ ] Confirm no teammate, browser/claude.ai session, scheduled task, MCP server,
+      daemon, or API caller can use the same subscription.
+- [ ] Run `bun run isolation:claude`; if sessions are found, close them or use its
+      explicit graceful-stop mode, then re-run it until it reports zero.
+- [ ] Run `bun run probe:claude` and `bun run preflight:calibration --provider claude`.
+- [ ] Record the fresh operator isolation confirmation through
+      `--confirm-isolation "<operator>"` on the calibration command.
+
+The local process sweep cannot validate the first four account-wide conditions;
+they remain a manual prerequisite under protocol §2.
+
 ## Step 1 — Confirm auth and plan (read-only, no quota cost)
 
 ```bash
@@ -63,6 +83,29 @@ The intended setup is an **off-hours run driven by a separate agent** (e.g.
 Codex) so this benchmark is the sole consumer of the Max seat. Record the
 confirmation (date, machine, that isolation was verified) in the run log. A run
 without a recorded confirmation is invalid and must be discarded.
+
+### Local session sweep (recommended immediately before the attestation)
+
+First inventory **local** Claude CLI sessions:
+
+```bash
+bun run isolation:claude
+```
+
+The command exits nonzero and prints each PID when it finds a local `claude`
+process. To gracefully stop the listed local sessions, the operator must opt in
+explicitly:
+
+```bash
+bun run isolation:claude -- --stop-local-claude --confirm-stop-local-claude "Vlad"
+```
+
+It sends `SIGTERM` only (never `SIGKILL`), waits two seconds, and re-inventories
+the local machine. Close any process that remains before continuing. This sweep
+does **not** prove account-wide isolation: separately close Claude.ai/browser
+work, other machines, scheduled jobs, MCP servers, API callers, and confirm that
+no teammate uses the seat. Only then provide the per-run
+`--confirm-isolation "Vlad"` attestation.
 
 ## Step 2.5 — Zero-subscription harness preflight (required after harness changes)
 
